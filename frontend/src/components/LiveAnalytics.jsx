@@ -1,0 +1,133 @@
+import { Card, CardHeader, CardContent } from "./ui/Card";
+function LiveAnalytics({
+  heatmapData,
+  playerScore,
+  opponentScore
+}) {
+  const roundLabels = ["R1", "R2", "R3", "R4", "R5", "R6"];
+  const playerRoundScores = heatmapData[0] || [65, 72, 58, 85, 90, 78];
+  const opponentRoundScores = heatmapData[1] || [55, 68, 75, 60, 45, 82];
+  const maxScore = Math.max(...playerRoundScores, ...opponentRoundScores, 1);
+  return <div className="space-y-6">
+      {
+    /* Scoreboard */
+  }
+      <Card>
+        <CardHeader title="Moderator Scoreboard" className="pb-2" />
+        <CardContent>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-bold text-slate-700">YOU</span>
+            <span className="text-sm font-bold text-slate-700">OPPONENT</span>
+          </div>
+          <div className="relative h-4 bg-slate-100 rounded-full overflow-hidden mb-4">
+            <div
+    className="absolute left-0 top-0 bottom-0 bg-slate-800 transition-all duration-500"
+    style={{
+      width: `${playerScore + opponentScore > 0 ? playerScore / (playerScore + opponentScore) * 100 : 50}%`
+    }}
+  >
+            </div>
+          </div>
+          <div className="flex justify-between text-2xl font-mono font-bold">
+            <span className="text-slate-900">{playerScore}</span>
+            <span className="text-slate-400">{opponentScore}</span>
+          </div>
+        </CardContent>
+      </Card>
+
+      {
+    /* Logic Score Bar Chart (replaces heatmap) */
+  }
+      <Card>
+        <CardHeader title="Logic Score by Round" className="pb-2" />
+        <CardContent>
+          <div className="space-y-3">
+            {roundLabels.map((label, i) => {
+    const pScore = playerRoundScores[i] || 0;
+    const oScore = opponentRoundScores[i] || 0;
+    return <div key={label}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] font-mono text-slate-500 w-6">
+                      {label}
+                    </span>
+                    <div className="flex gap-3 text-[10px] font-mono">
+                      <span className="text-slate-700">{pScore}</span>
+                      <span className="text-slate-400">{oScore}</span>
+                    </div>
+                  </div>
+                  <div className="flex gap-1 h-3">
+                    <div
+      className="bg-slate-700 rounded-sm transition-all duration-500"
+      style={{
+        width: `${pScore / maxScore * 100}%`
+      }}
+      title={`You: ${pScore}`}
+    >
+                    </div>
+                    <div
+      className="bg-slate-300 rounded-sm transition-all duration-500"
+      style={{
+        width: `${oScore / maxScore * 100}%`
+      }}
+      title={`Opponent: ${oScore}`}
+    >
+                    </div>
+                  </div>
+                </div>;
+  })}
+          </div>
+          <div className="flex items-center gap-4 mt-4 pt-3 border-t border-slate-100 text-[10px] font-mono text-slate-400">
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-2 bg-slate-700 rounded-sm" />
+              <span>You</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-2 bg-slate-300 rounded-sm" />
+              <span>Opponent</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {
+    /* Real-time Stats */
+  }
+      <Card>
+        <CardHeader title="Live Metrics" className="pb-2" />
+        <CardContent>
+          <div className="space-y-3">
+            <div>
+              <div className="flex justify-between text-xs mb-1">
+                <span className="text-slate-600">Argument Coherence</span>
+                <span className="font-mono font-bold">92%</span>
+              </div>
+              <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                <div className="h-full bg-green-500 w-[92%]" />
+              </div>
+            </div>
+            <div>
+              <div className="flex justify-between text-xs mb-1">
+                <span className="text-slate-600">Fallacy Detection</span>
+                <span className="font-mono font-bold">12%</span>
+              </div>
+              <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                <div className="h-full bg-red-400 w-[12%]" />
+              </div>
+            </div>
+            <div>
+              <div className="flex justify-between text-xs mb-1">
+                <span className="text-slate-600">Audience Engagement</span>
+                <span className="font-mono font-bold">8.4k</span>
+              </div>
+              <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                <div className="h-full bg-blue-400 w-[75%]" />
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>;
+}
+export {
+  LiveAnalytics
+};
