@@ -1,3 +1,4 @@
+// Available expert personas for draft/member selection.
 const AGENTS = [
   {
     id: "1",
@@ -80,6 +81,7 @@ const AGENTS = [
     avatarInitials: "NT"
   }
 ];
+// Top-level experience modes shown on the landing screen.
 const MODE_OPTIONS = [
   {
     id: "combat",
@@ -103,6 +105,7 @@ const MODE_OPTIONS = [
     features: ["Era Skins", "Timeline View", "Relic Icons"]
   }
 ];
+// Debate temperature presets that tune tone and intent.
 const DEBATE_TEMPERATURES = [
   {
     id: "hostile",
@@ -175,6 +178,7 @@ const DEBATE_TEMPERATURES = [
     example: "A calm discussion between friends"
   }
 ];
+// Visual style mapping for critique tags in mentor chat.
 const CRITIQUE_TAG_STYLES = {
   "solid-evidence": "bg-green-100 text-green-800 border-green-200",
   "good-rhetoric": "bg-blue-100 text-blue-800 border-blue-200",
@@ -185,6 +189,7 @@ const CRITIQUE_TAG_STYLES = {
   "ad-hominem": "bg-rose-100 text-rose-800 border-rose-200",
   "weak-premise": "bg-yellow-100 text-yellow-800 border-yellow-200"
 };
+// Seed discussion history for mentor mode.
 const MENTOR_MOCK_MESSAGES = [
   {
     id: "m1",
@@ -256,6 +261,7 @@ const MENTOR_MOCK_MESSAGES = [
     timestamp: Date.now() - 1e4
   }
 ];
+// Strategy cards available in combat mode.
 const STRATEGIES = [
   {
     id: "agg",
@@ -285,6 +291,7 @@ const STRATEGIES = [
     riskLevel: "Low"
   }
 ];
+// Preset topics for quick debate setup.
 const TOPICS = [
   "Should AI be granted legal personhood?",
   "Is universal basic income inevitable?",
@@ -292,9 +299,11 @@ const TOPICS = [
   "Is privacy a relic of the past?",
   "Should humanity colonize Mars?"
 ];
+// Synthetic round score data for analytics panels.
 const MOCK_HEATMAP = Array(6).fill(0).map(
   () => Array(6).fill(0).map(() => Math.floor(Math.random() * 100))
 );
+// Mock generated argument snippets keyed by strategy type.
 const MOCK_ARGUMENTS = {
   aggressive: [
     "Your entire premise collapses under scrutiny. The data you cite is cherry-picked from a single flawed study, while the overwhelming consensus points in the opposite direction. This isn't a matter of interpretation \u2014 it's a matter of intellectual honesty.",

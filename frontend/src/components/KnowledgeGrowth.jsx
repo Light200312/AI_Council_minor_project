@@ -1,4 +1,6 @@
 import { TrendingUp } from "lucide-react";
+
+// KnowledgeGrowth displays learner progression as a level/progress bar.
 function KnowledgeGrowth({ value }) {
   return <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
       <div className="flex items-center gap-2 mb-3">

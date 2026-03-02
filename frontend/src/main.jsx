@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
 
+// Mount the React app into the root DOM node.
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <App />

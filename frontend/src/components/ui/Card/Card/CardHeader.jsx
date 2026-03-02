@@ -1,4 +1,6 @@
 import { cn } from "../utils";
+
+// CardHeader renders optional title/subtitle or custom header content.
 const CardHeader = ({
   className,
   title,

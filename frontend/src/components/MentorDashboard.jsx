@@ -6,6 +6,8 @@ import { Card } from "./ui/Card";
 import { KnowledgeGrowth } from "./KnowledgeGrowth";
 import { AppreciationMeter } from "./AppreciationMeter";
 import { CRITIQUE_TAG_STYLES, MENTOR_MOCK_MESSAGES } from "../data/mockData";
+
+// MentorDashboard hosts the guided discussion experience and side metrics.
 function MentorDashboard({ topic, members }) {
   const [state, setState] = useState({
     messages: MENTOR_MOCK_MESSAGES,
@@ -16,6 +18,7 @@ function MentorDashboard({ topic, members }) {
   });
   const [inputValue, setInputValue] = useState("");
   const messagesEndRef = useRef(null);
+  // Keep the newest message visible when conversation updates.
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({
       behavior: "smooth"
@@ -24,6 +27,7 @@ function MentorDashboard({ topic, members }) {
   useEffect(() => {
     scrollToBottom();
   }, [state.messages]);
+  // Append the user's message and update mentorship progress indicators.
   const handleSendMessage = () => {
     if (!inputValue.trim()) return;
     const newMessage = {

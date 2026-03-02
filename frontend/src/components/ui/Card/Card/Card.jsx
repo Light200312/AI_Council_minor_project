@@ -1,5 +1,7 @@
 import { forwardRef } from "react";
 import { cn } from "../utils";
+
+// Card is a base container primitive supporting style, spacing, and shape variants.
 const Card = forwardRef(
   ({
     children,

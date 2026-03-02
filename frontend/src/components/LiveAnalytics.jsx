@@ -1,4 +1,6 @@
 import { Card, CardHeader, CardContent } from "./ui/Card";
+
+// LiveAnalytics shows score trend and live quality metrics during debate.
 function LiveAnalytics({
   heatmapData,
   playerScore,

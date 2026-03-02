@@ -8,6 +8,8 @@ import {
   RotateCcw
 } from "lucide-react";
 import { DEBATE_TEMPERATURES } from "../data/mockData";
+
+// Sidebar surfaces mode navigation, active session context, and user actions.
 const NAV_ITEMS = [
   {
     id: "combat",
@@ -40,6 +42,8 @@ const NAV_ITEMS = [
     isMode: false
   }
 ];
+
+// Render left rail navigation plus current session summary.
 function Sidebar({
   activeTab,
   onTabChange,
@@ -124,7 +128,7 @@ function Sidebar({
                   </div>
   )}
               </div>
-            </div>}
+            </div>}   
         </div>}
 
       {

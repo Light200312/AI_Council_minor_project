@@ -1,6 +1,8 @@
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+
+// Dialog wraps Radix primitives with consistent sizing, positioning, and motion.
 const Dialog = ({
   isOpen,
   onClose,
@@ -89,6 +91,7 @@ const Dialog = ({
       </AnimatePresence>
     </DialogPrimitive.Root>;
 };
+// DialogHeader provides the modal title area.
 const DialogHeader = ({
   children,
   className = ""
@@ -97,10 +100,12 @@ const DialogHeader = ({
       {children}
     </DialogPrimitive.Title>
   </div>;
+// DialogContent provides the modal body container.
 const DialogContent = ({
   children,
   className = ""
 }) => <div className={`p-6 ${className}`}>{children}</div>;
+// DialogFooter aligns modal actions at the bottom.
 const DialogFooter = ({
   children,
   className = ""

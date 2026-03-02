@@ -1,6 +1,8 @@
 import { AgentCard } from "./AgentCard";
 import { Button } from "./ui/Button";
 import { Check } from "lucide-react";
+
+// DraftBoard manages team drafting and confirmation in combat mode.
 function DraftBoard({
   availableAgents,
   selectedAgents,

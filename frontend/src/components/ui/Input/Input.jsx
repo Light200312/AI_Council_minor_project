@@ -1,5 +1,7 @@
 import { useState, forwardRef } from "react";
 import { Eye, EyeOff } from "lucide-react";
+
+// Input is a flexible text field with adornments, validation, and password toggle support.
 const Input = forwardRef(
   ({
     label,
@@ -19,8 +21,10 @@ const Input = forwardRef(
     onChange,
     ...props
   }, ref) => {
+    // Keep local value for character counting and uncontrolled usage.
     const [showPassword, setShowPassword] = useState(false);
     const [inputValue, setInputValue] = useState(value || defaultValue || "");
+    // Normalize onChange so internal and external state stay in sync.
     const handleChange = (e) => {
       setInputValue(e.target.value);
       onChange?.(e);

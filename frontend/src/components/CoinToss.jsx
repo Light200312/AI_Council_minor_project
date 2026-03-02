@@ -1,8 +1,11 @@
 import { useState } from "react";
 import { Button } from "./ui/Button";
+
+// CoinToss handles the pre-combat turn order decision overlay.
 function CoinToss({ onComplete }) {
   const [isFlipping, setIsFlipping] = useState(false);
   const [result, setResult] = useState(null);
+  // Animate flip, resolve random outcome, then hand control back to parent.
   const handleFlip = () => {
     setIsFlipping(true);
     setTimeout(() => {

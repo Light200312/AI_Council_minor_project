@@ -1,5 +1,7 @@
 import { useState, forwardRef } from "react";
 import { cva } from "class-variance-authority";
+
+// Variant definitions for the outer toggle track.
 const toggleVariants = cva(
   "relative inline-flex items-center rounded-full transition-colors duration-200 ease-in-out focus-visible:ring-2 focus-visible:ring-gray-500 focus-visible:ring-offset-2",
   {
@@ -57,6 +59,7 @@ const labelVariants = cva("text-gray-700", {
     disabled: false
   }
 });
+// Toggle supports controlled/uncontrolled modes with keyboard accessibility.
 const Toggle = forwardRef(
   ({
     checked,
@@ -72,6 +75,7 @@ const Toggle = forwardRef(
   }, ref) => {
     const [isChecked, setIsChecked] = useState(defaultChecked ?? false);
     const isControlled = checked !== void 0;
+    // Handle pointer toggle while respecting disabled and control mode.
     const handleClick = () => {
       if (disabled) return;
       if (isControlled) {
@@ -81,6 +85,7 @@ const Toggle = forwardRef(
         onChange?.(!isChecked);
       }
     };
+    // Allow keyboard activation on Enter/Space.
     const handleKeyDown = (event) => {
       if (event.key === "Enter" || event.key === " ") {
         event.preventDefault();

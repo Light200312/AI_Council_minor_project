@@ -1,4 +1,6 @@
 import { cn } from "../utils";
+
+// CardContent renders main card body and optional media slot.
 const CardContent = ({
   className,
   children,

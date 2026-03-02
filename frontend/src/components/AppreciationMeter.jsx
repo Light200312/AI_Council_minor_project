@@ -1,10 +1,14 @@
 import { ThumbsUp, Sparkles } from "lucide-react";
+
+// AppreciationMeter visualizes current consensus strength in mentor mode.
 function AppreciationMeter({ value }) {
+  // Choose ring color based on consensus range.
   const getColor = () => {
     if (value < 30) return "text-slate-400 border-slate-200";
     if (value < 70) return "text-blue-500 border-blue-200";
     return "text-amber-500 border-amber-200";
   };
+  // Add glow effect for very high consensus.
   const getGlow = () => {
     if (value >= 80) return "shadow-[0_0_15px_rgba(245,158,11,0.5)]";
     return "";

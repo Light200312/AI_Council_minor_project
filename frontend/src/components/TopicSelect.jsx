@@ -3,6 +3,8 @@ import { ArrowRight, ChevronLeft, PenLine, Info, Check } from "lucide-react";
 import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
 import { TOPICS, DEBATE_TEMPERATURES } from "../data/mockData";
+
+// TopicSelect configures debate temperature and topic before member selection.
 function TopicSelect({ onSelectTopic, onBack }) {
   const [customTopic, setCustomTopic] = useState("");
   const [selectedTopic, setSelectedTopic] = useState(null);
@@ -14,6 +16,7 @@ function TopicSelect({ onSelectTopic, onBack }) {
   );
   const activeTopic = selectedTopic || (customTopic.trim() ? customTopic.trim() : null);
   const canContinue = activeTopic && selectedTemp;
+  // Continue only when both a topic and temperature are selected.
   const handleContinue = () => {
     if (activeTopic && selectedTemp) {
       onSelectTopic(activeTopic, selectedTemp);

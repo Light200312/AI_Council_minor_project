@@ -1,4 +1,6 @@
 import { Mic } from "lucide-react";
+
+// Arena renders the live debate table and highlights the current speaker.
 function Arena({
   playerTeam,
   opponentTeam,

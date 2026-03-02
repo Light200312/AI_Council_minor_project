@@ -1,5 +1,7 @@
 import { Card, CardContent, CardHeader, CardFooter } from "./ui/Card";
 import { Brain, MessageSquare, Scale, Info } from "lucide-react";
+
+// AgentCard renders a candidate/member profile with stats and selection state.
 function AgentCard({
   agent,
   isSelected,

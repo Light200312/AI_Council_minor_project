@@ -1,4 +1,6 @@
 import { cn } from "../utils";
+
+// CardFooter renders action/summary content aligned at the bottom of a card.
 const CardFooter = ({
   className,
   children,

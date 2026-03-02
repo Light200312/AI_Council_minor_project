@@ -13,6 +13,8 @@ import {
 } from "@floating-ui/react";
 import { Check, ChevronDown, Search, X } from "lucide-react";
 import clsx from "clsx";
+
+// Select provides single/multi-select with search and grouped options.
 const Select = ({
   options,
   value,
@@ -57,6 +59,7 @@ const Select = ({
       role
     ]
   );
+  // Apply selection changes for single or multi-select mode.
   const handleOptionClick = (optionValue) => {
     if (multiple) {
       const newValues = selectedValues.includes(optionValue) ? selectedValues.filter((v) => v !== optionValue) : [...selectedValues, optionValue];

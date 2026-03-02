@@ -11,6 +11,8 @@ import {
   RotateCcw
 } from "lucide-react";
 import { MOCK_ARGUMENTS } from "../data/mockData";
+
+// DirectorChoice lets the user preview and submit a strategic response.
 function DirectorChoice({
   options,
   onSelect,
@@ -20,6 +22,7 @@ function DirectorChoice({
     null
   );
   const [previewText, setPreviewText] = useState("");
+  // Map strategy type to a visual icon for quick scanning.
   const getIcon = (type) => {
     switch (type) {
       case "aggressive":
@@ -32,6 +35,7 @@ function DirectorChoice({
         return <Zap className="w-5 h-5" />;
     }
   };
+  // Apply contextual hover styling by strategy type.
   const getBorderColor = (type) => {
     switch (type) {
       case "aggressive":
@@ -44,6 +48,7 @@ function DirectorChoice({
         return "";
     }
   };
+  // Generate a preview argument before final submission.
   const handleStrategyClick = (option) => {
     if (isLoading) return;
     const args = MOCK_ARGUMENTS[option.type] || MOCK_ARGUMENTS["balanced"];
@@ -51,6 +56,7 @@ function DirectorChoice({
     setPreviewStrategy(option);
     setPreviewText(randomArg);
   };
+  // Send the selected previewed strategy to the parent controller.
   const handleSend = () => {
     if (previewStrategy) {
       onSelect(previewStrategy);
@@ -58,10 +64,12 @@ function DirectorChoice({
       setPreviewText("");
     }
   };
+  // Clear the current preview and return to strategy list.
   const handleDiscard = () => {
     setPreviewStrategy(null);
     setPreviewText("");
   };
+  // Refresh preview text while keeping the same strategy.
   const handleRegenerate = () => {
     if (previewStrategy) {
       const args = MOCK_ARGUMENTS[previewStrategy.type] || MOCK_ARGUMENTS["balanced"];

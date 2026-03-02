@@ -3,6 +3,8 @@ import { Dialog, DialogContent, DialogHeader, DialogFooter } from "./ui/Dialog";
 import { Input } from "./ui/Input";
 import { Button } from "./ui/Button";
 import { Select } from "./ui/Select";
+
+// PersonaEditor collects custom agent details inside a modal dialog.
 function PersonaEditor({ isOpen, onClose, onSave }) {
   const [name, setName] = useState("");
   const [role, setRole] = useState("");

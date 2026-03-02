@@ -3,6 +3,8 @@ import { Check, ChevronLeft, Search } from "lucide-react";
 import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
 import { AgentCard } from "./AgentCard";
+
+// MemberSelect filters and selects council members during setup.
 function MemberSelect({
   availableAgents,
   selectedAgents,
@@ -14,6 +16,7 @@ function MemberSelect({
   const [searchQuery, setSearchQuery] = useState("");
   const remaining = maxSelection - selectedAgents.length;
   const isComplete = remaining === 0;
+  // Filter experts by searchable profile fields.
   const filteredAgents = useMemo(() => {
     if (!searchQuery.trim()) return availableAgents;
     const q = searchQuery.toLowerCase();

@@ -2,7 +2,10 @@ import { Swords, GraduationCap, Clock, ArrowRight } from "lucide-react";
 import { Card, CardHeader, CardContent, CardFooter } from "./ui/Card";
 import { Button } from "./ui/Button";
 import { MODE_OPTIONS } from "../data/mockData";
+
+// ModeSelect is the entry screen for choosing the debate experience type.
 function ModeSelect({ onSelectMode }) {
+  // Convert configured icon keys into rendered Lucide icons.
   const getIcon = (iconName) => {
     switch (iconName) {
       case "Swords":

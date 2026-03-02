@@ -1,4 +1,6 @@
 import { LoadingSpinner } from "./LoadingSpinner";
+
+// Button is a shared action component with variants, sizes, icons, and loading state.
 const Button = ({
   variant = "primary",
   size = "medium",

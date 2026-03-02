@@ -1,4 +1,6 @@
 import { Toggle } from "./ui/Toggle";
+
+// BiasSlider controls and displays the council bias level.
 function BiasSlider({ value, onChange }) {
   return <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
       <div className="flex justify-between items-center mb-2">
