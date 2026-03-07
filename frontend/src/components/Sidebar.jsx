@@ -5,7 +5,8 @@ import {
   LogOut,
   GraduationCap,
   Clock,
-  RotateCcw
+  RotateCcw,
+  History
 } from "lucide-react";
 import { DEBATE_TEMPERATURES } from "../data/mockData";
 
@@ -51,7 +52,8 @@ function Sidebar({
   currentTopic,
   currentMembers,
   currentTemperature,
-  onNewSession
+  onNewSession,
+  onSignOut
 }) {
   const tempInfo = currentTemperature ? DEBATE_TEMPERATURES.find((t) => t.id === currentTemperature) : null;
   return <div className="w-64 h-full bg-slate-50 border-r border-slate-200 flex flex-col fixed left-0 top-0 z-10">
@@ -157,6 +159,17 @@ function Sidebar({
                   {isActive && <span className="w-2 h-2 rounded-full bg-green-400" />}
                 </button>;
   })}
+            <button
+              onClick={() => onTabChange("history")}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-md text-sm font-medium transition-colors ${
+                activeTab === "history"
+                  ? "bg-slate-200 text-slate-900"
+                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+              }`}
+            >
+              <History className="w-5 h-5" />
+              <span className="flex-1 text-left">Past Discussions</span>
+            </button>
           </div>
         </div>
 
@@ -208,7 +221,10 @@ function Sidebar({
             </p>
           </div>
         </div>
-        <button className="w-full flex items-center gap-2 px-4 py-2 text-sm text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors">
+        <button
+          className="w-full flex items-center gap-2 px-4 py-2 text-sm text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+          onClick={onSignOut}
+        >
           <LogOut className="w-4 h-4" />
           Sign Out
         </button>

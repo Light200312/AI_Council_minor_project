@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Sidebar } from "./components/Sidebar";
 import { ControlBar } from "./components/ControlBar";
 import { DraftBoard } from "./components/DraftBoard";
@@ -12,262 +12,194 @@ import { ModeSelect } from "./components/ModeSelect";
 import { TopicSelect } from "./components/TopicSelect";
 import { MemberSelect } from "./components/MemberSelect";
 import { MentorDashboard } from "./components/MentorDashboard";
-import { AGENTS, STRATEGIES, MOCK_HEATMAP } from "./data/mockData";
+import { DiscussionHistory } from "./components/DiscussionHistory";
+import { AuthPage } from "./components/AuthPage";
+import { Button } from "./components/ui/Button";
+import { STRATEGIES, MOCK_HEATMAP } from "./data/mockData";
+import { useAppStore } from "./store/useAppStore";
 
-// App orchestrates setup flow, mode-specific views, and core session state.
 function App() {
-  const [gameState, setGameState] = useState({
-    mode: "combat",
-    setupPhase: "modeSelect",
-    phase: "draft",
-    currentRound: 1,
-    totalRounds: 5,
-    playerTeam: [],
-    opponentTeam: [],
-    playerScore: 0,
-    opponentScore: 0,
-    biasLevel: 50,
-    topic: "",
-  });
+  const token = useAppStore((state) => state.token);
+  const agents = useAppStore((state) => state.agents);
+  const gameState = useAppStore((state) => state.gameState);
+  const authenticate = useAppStore((state) => state.authenticate);
+  const signOut = useAppStore((state) => state.signOut);
+  const bootstrapSession = useAppStore((state) => state.bootstrapSession);
+  const setMode = useAppStore((state) => state.setMode);
+  const setTopic = useAppStore((state) => state.setTopic);
+  const goToSetupPhase = useAppStore((state) => state.goToSetupPhase);
+  const toggleMember = useAppStore((state) => state.toggleMember);
+  const completeSetup = useAppStore((state) => state.completeSetup);
+  const confirmDraft = useAppStore((state) => state.confirmDraft);
+  const resetSession = useAppStore((state) => state.resetSession);
+  const loadDiscussionHistory = useAppStore((state) => state.loadDiscussionHistory);
+  const openHistoryDiscussion = useAppStore((state) => state.openHistoryDiscussion);
+  const discussionHistory = useAppStore((state) => state.discussionHistory);
+  const isLoadingHistory = useAppStore((state) => state.isLoadingHistory);
+  const setCombatStarted = useAppStore((state) => state.setCombatStarted);
+  const applyStrategyRound = useAppStore((state) => state.applyStrategyRound);
+  const setBiasLevel = useAppStore((state) => state.setBiasLevel);
+
   const [activeTab, setActiveTab] = useState("arena");
   const [isPersonaEditorOpen, setIsPersonaEditorOpen] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [activeSpeakerId, setActiveSpeakerId] = useState();
+  const [showSetupHistory, setShowSetupHistory] = useState(false);
 
-  // Move from mode selection to topic configuration.
-  const handleModeSelect = (mode) => {
-    setGameState((prev) => ({
-      ...prev,
-      mode,
-      setupPhase: "topicSelect",
-    }));
-  };
+  useEffect(() => {
+    bootstrapSession();
+  }, [bootstrapSession]);
 
-  // Save selected topic/temperature and move to member selection.
-  const handleTopicSelect = (topic, temperature) => {
-    setGameState((prev) => ({
-      ...prev,
-      topic,
-      temperature,
-      setupPhase: "memberSelect",
-    }));
-  };
-
-  // Add/remove a member while enforcing max team size.
-  const handleMemberToggle = (agentId) => {
-    if (gameState.playerTeam.find((a) => a.id === agentId)) {
-      setGameState((prev) => ({
-        ...prev,
-        playerTeam: prev.playerTeam.filter((a) => a.id !== agentId),
-      }));
-    } else if (gameState.playerTeam.length < 3) {
-      const agent = AGENTS.find((a) => a.id === agentId);
-      if (agent) {
-        setGameState((prev) => ({
-          ...prev,
-          playerTeam: [...prev.playerTeam, agent],
-        }));
-      }
-    }
-  };
-
-  // Finalize setup and prepare mode-specific next phase.
-  const handleSetupComplete = () => {
-    if (gameState.mode === "combat") {
-      const remainingAgents = AGENTS.filter(
-        (a) => !gameState.playerTeam.includes(a),
-      );
-      const opponentTeam = remainingAgents.slice(0, 3);
-      setGameState((prev) => ({
-        ...prev,
-        opponentTeam,
-        setupPhase: "ready",
-        phase: "coinToss",
-        // Skip draft board since we did member select
-      }));
-    } else {
-      setGameState((prev) => ({
-        ...prev,
-        setupPhase: "ready",
-      }));
-    }
-  };
-  const handleDraftAgent = (agentId) => {
-    handleMemberToggle(agentId);
-  };
-
-  // Finalize draft and auto-assign the remaining agents to the opponent.
-  const confirmDraft = () => {
-    const remainingAgents = AGENTS.filter(
-      (a) => !gameState.playerTeam.includes(a),
-    );
-    const opponentTeam = remainingAgents.slice(0, 3);
-    setGameState((prev) => ({
-      ...prev,
-      opponentTeam,
-      phase: "coinToss",
-    }));
-  };
-
-  // Start combat after toss and trigger the first speaker animation.
-  const handleCoinTossComplete = (winner) => {
-    setGameState((prev) => ({
-      ...prev,
-      phase: "combat",
-    }));
-    simulateTurn(
-      winner === "player" ?
-        gameState.playerTeam[0].id
-      : gameState.opponentTeam[0].id,
-    );
-  };
-  // Simulate speaking animation for the active participant.
   const simulateTurn = (speakerId) => {
     setActiveSpeakerId(speakerId);
     setIsSpeaking(true);
     setTimeout(() => {
       setIsSpeaking(false);
       setActiveSpeakerId(void 0);
-    }, 3e3);
+    }, 3000);
   };
 
-  // Apply selected strategy effects and advance the round counter.
-  const handleStrategySelect = (option) => {
-    const speaker =
-      gameState.playerTeam[
-        gameState.currentRound % gameState.playerTeam.length
-      ];
-    simulateTurn(speaker.id);
-    setGameState((prev) => ({
-      ...prev,
-      playerScore: prev.playerScore + 10 + Math.floor(Math.random() * 5),
-      currentRound: Math.min(prev.currentRound + 1, prev.totalRounds),
-    }));
+  const handleCoinTossComplete = (winner) => {
+    setCombatStarted();
+    const firstSpeaker =
+      winner === "player" ? gameState.playerTeam[0]?.id : gameState.opponentTeam[0]?.id;
+    if (firstSpeaker) simulateTurn(firstSpeaker);
   };
-  if (gameState.setupPhase === "modeSelect") {
-    return <ModeSelect onSelectMode={handleModeSelect} />;
+
+  const handleStrategySelect = () => {
+    const speaker = gameState.playerTeam[gameState.currentRound % gameState.playerTeam.length];
+    if (speaker?.id) simulateTurn(speaker.id);
+    applyStrategyRound();
+  };
+
+  const handleTabChange = (tabId) => {
+    setActiveTab(tabId);
+    if (tabId === "history") {
+      loadDiscussionHistory();
+    }
+  };
+
+  if (!token) {
+    return <AuthPage onAuthenticate={authenticate} />;
   }
-  if (gameState.setupPhase === "topicSelect") {
+
+  if (gameState.setupPhase === "modeSelect") {
+    if (showSetupHistory) {
+      return (
+        <div className="min-h-screen bg-[#f5f5f7] p-8">
+          <div className="max-w-6xl mx-auto space-y-4">
+            <Button variant="secondary" onClick={() => setShowSetupHistory(false)}>
+              Back To Mode Selection
+            </Button>
+            <DiscussionHistory
+              discussions={discussionHistory}
+              isLoading={isLoadingHistory}
+              onOpenDiscussion={(entry) => {
+                openHistoryDiscussion(entry);
+                setShowSetupHistory(false);
+              }}
+            />
+          </div>
+        </div>
+      );
+    }
+
     return (
-      <TopicSelect
-        onSelectTopic={handleTopicSelect}
-        onBack={() =>
-          setGameState((prev) => ({
-            ...prev,
-            setupPhase: "modeSelect",
-          }))
-        }
+      <ModeSelect
+        onSelectMode={setMode}
+        onOpenHistory={() => {
+          setShowSetupHistory(true);
+          loadDiscussionHistory();
+        }}
       />
     );
+  }
+  if (gameState.setupPhase === "topicSelect") {
+    return <TopicSelect onSelectTopic={setTopic} onBack={() => goToSetupPhase("modeSelect")} />;
   }
   if (gameState.setupPhase === "memberSelect") {
     return (
       <MemberSelect
-        availableAgents={AGENTS}
+        availableAgents={agents}
         selectedAgents={gameState.playerTeam.map((a) => a.id)}
-        onToggleAgent={handleMemberToggle}
-        onConfirm={handleSetupComplete}
-        onBack={() =>
-          setGameState((prev) => ({
-            ...prev,
-            setupPhase: "topicSelect",
-          }))
-        }
+        onToggleAgent={toggleMember}
+        onConfirm={completeSetup}
+        onBack={() => goToSetupPhase("topicSelect")}
       />
     );
   }
+
   return (
     <div className="flex h-screen w-full bg-[#f5f5f7] text-[#1f2933] font-sans overflow-hidden">
       <Sidebar
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={handleTabChange}
         currentMode={gameState.mode}
         currentTopic={gameState.topic}
         currentMembers={gameState.playerTeam}
         currentTemperature={gameState.temperature}
-        onNewSession={() =>
-          setGameState({
-            mode: "combat",
-            setupPhase: "modeSelect",
-            phase: "draft",
-            currentRound: 1,
-            totalRounds: 5,
-            playerTeam: [],
-            opponentTeam: [],
-            playerScore: 0,
-            opponentScore: 0,
-            biasLevel: 50,
-            topic: "",
-          })
-        }
+        onNewSession={resetSession}
+        onSignOut={signOut}
       />
 
       <div className="flex-1 ml-64 flex flex-col h-full overflow-hidden">
         <ControlBar />
-
         <main className="flex-1 overflow-y-auto p-6">
-          {
-            gameState.mode === "mentor" || gameState.mode === "historical" ?
-              <MentorDashboard
-                topic={gameState.topic}
-                members={gameState.playerTeam}
-              />
-              // Combat Mode Logic
-            : <>
-                {gameState.phase === "draft" ?
-                  <DraftBoard
-                    availableAgents={AGENTS}
-                    selectedAgents={gameState.playerTeam.map((a) => a.id)}
-                    onSelectAgent={handleDraftAgent}
-                    onConfirmDraft={confirmDraft}
-                  />
-                : <div className="grid grid-cols-12 gap-6 h-full">
-                    <div className="col-span-9 flex flex-col gap-6">
-                      <Arena
-                        playerTeam={gameState.playerTeam}
-                        opponentTeam={gameState.opponentTeam}
-                        currentRound={{
-                          roundNumber: gameState.currentRound,
-                          topic: gameState.topic,
-                          transcript: [],
-                        }}
-                        isSpeaking={isSpeaking}
-                        activeSpeakerId={activeSpeakerId}
-                      />
-
-                      <DirectorChoice
-                        options={STRATEGIES}
-                        onSelect={handleStrategySelect}
-                        isLoading={isSpeaking}
-                      />
-                    </div>
-
-                    <div className="col-span-3 space-y-6">
-                      <BiasSlider
-                        value={gameState.biasLevel}
-                        onChange={(val) =>
-                          setGameState((prev) => ({
-                            ...prev,
-                            biasLevel: val,
-                          }))
-                        }
-                      />
-
-                      <LiveAnalytics
-                        heatmapData={MOCK_HEATMAP}
-                        playerScore={gameState.playerScore}
-                        opponentScore={gameState.opponentScore}
-                      />
-                    </div>
+          {activeTab === "history" ? (
+            <DiscussionHistory
+              discussions={discussionHistory}
+              isLoading={isLoadingHistory}
+              onOpenDiscussion={(entry) => {
+                openHistoryDiscussion(entry);
+                setActiveTab("arena");
+              }}
+            />
+          ) : gameState.mode === "mentor" || gameState.mode === "historical" ? (
+            <MentorDashboard topic={gameState.topic} members={gameState.playerTeam} />
+          ) : (
+            <>
+              {gameState.phase === "draft" ? (
+                <DraftBoard
+                  availableAgents={agents}
+                  selectedAgents={gameState.playerTeam.map((a) => a.id)}
+                  onSelectAgent={toggleMember}
+                  onConfirmDraft={confirmDraft}
+                />
+              ) : (
+                <div className="grid grid-cols-12 gap-6 h-full">
+                  <div className="col-span-9 flex flex-col gap-6">
+                    <Arena
+                      playerTeam={gameState.playerTeam}
+                      opponentTeam={gameState.opponentTeam}
+                      currentRound={{
+                        roundNumber: gameState.currentRound,
+                        topic: gameState.topic,
+                        transcript: [],
+                      }}
+                      isSpeaking={isSpeaking}
+                      activeSpeakerId={activeSpeakerId}
+                    />
+                    <DirectorChoice
+                      options={STRATEGIES}
+                      onSelect={handleStrategySelect}
+                      isLoading={isSpeaking}
+                    />
                   </div>
-                }
-              </>
-
-          }
+                  <div className="col-span-3 space-y-6">
+                    <BiasSlider value={gameState.biasLevel} onChange={setBiasLevel} />
+                    <LiveAnalytics
+                      heatmapData={MOCK_HEATMAP}
+                      playerScore={gameState.playerScore}
+                      opponentScore={gameState.opponentScore}
+                    />
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </main>
       </div>
 
-      {/* Overlays */}
       {gameState.phase === "coinToss" && gameState.mode === "combat" && (
         <CoinToss onComplete={handleCoinTossComplete} />
       )}
@@ -280,4 +212,5 @@ function App() {
     </div>
   );
 }
+
 export default App;

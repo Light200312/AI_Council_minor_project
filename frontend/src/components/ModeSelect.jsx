@@ -1,10 +1,10 @@
-import { Swords, GraduationCap, Clock, ArrowRight } from "lucide-react";
+import { Swords, GraduationCap, Clock, ArrowRight, History } from "lucide-react";
 import { Card, CardHeader, CardContent, CardFooter } from "./ui/Card";
 import { Button } from "./ui/Button";
 import { MODE_OPTIONS } from "../data/mockData";
 
 // ModeSelect is the entry screen for choosing the debate experience type.
-function ModeSelect({ onSelectMode }) {
+function ModeSelect({ onSelectMode, onOpenHistory }) {
   // Convert configured icon keys into rendered Lucide icons.
   const getIcon = (iconName) => {
     switch (iconName) {
@@ -74,6 +74,19 @@ function ModeSelect({ onSelectMode }) {
           </Card>
   )}
       </div>
+
+      {onOpenHistory ? (
+        <div className="mt-8">
+          <Button
+            variant="secondary"
+            size="large"
+            leftIcon={<History className="w-4 h-4" />}
+            onClick={onOpenHistory}
+          >
+            Past Discussions
+          </Button>
+        </div>
+      ) : null}
     </div>;
 }
 export {
