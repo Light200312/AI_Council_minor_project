@@ -152,7 +152,7 @@ function PersonaEditor({ isOpen, onClose, onCreated }) {
         </p>
       </DialogHeader>
 
-      <DialogContent className="space-y-4 py-4">
+      <DialogContent className="space-y-4 py-4 max-h-[70vh] overflow-y-auto">
         <div className="flex items-center gap-2">
           <button
             type="button"

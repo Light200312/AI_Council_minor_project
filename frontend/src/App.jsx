@@ -40,6 +40,8 @@ function App() {
   const applyStrategyRound = useAppStore((state) => state.applyStrategyRound);
   const setBiasLevel = useAppStore((state) => state.setBiasLevel);
   const reloadAgents = useAppStore((state) => state.reloadAgents);
+  const maxMembers = useAppStore((state) => state.gameState.maxMembers);
+  const setMaxMembers = useAppStore((state) => state.setMaxMembers);
 
   const [activeTab, setActiveTab] = useState("arena");
   const [isPersonaEditorOpen, setIsPersonaEditorOpen] = useState(false);
@@ -152,6 +154,8 @@ function App() {
           onConfirm={completeSetup}
           onBack={() => goToSetupPhase("topicSelect")}
           onOpenPersonaEditor={() => setIsPersonaEditorOpen(true)}
+          maxSelection={maxMembers}
+          onMaxSelectionChange={setMaxMembers}
         />
         <PersonaEditor
           isOpen={isPersonaEditorOpen}
@@ -201,6 +205,7 @@ function App() {
                   selectedAgents={gameState.playerTeam.map((a) => a.id)}
                   onSelectAgent={toggleMember}
                   onConfirmDraft={confirmDraft}
+                  maxSelection={maxMembers}
                 />
               ) : (
                 <div className="grid grid-cols-12 gap-6 h-full">

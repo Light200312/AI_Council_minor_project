@@ -16,6 +16,7 @@ function initialGameState() {
     totalRounds: 5,
     playerTeam: [],
     opponentTeam: [],
+    maxMembers: 3,
     playerScore: 0,
     opponentScore: 0,
     biasLevel: 50,
@@ -300,6 +301,19 @@ const useAppStore = create(
       goToSetupPhase: (setupPhase) =>
         set((state) => ({ gameState: { ...state.gameState, setupPhase } })),
 
+      setMaxMembers: (value) =>
+        set((state) => {
+          const nextValue = Math.max(1, Math.min(8, Number(value) || 3));
+          const nextTeam = state.gameState.playerTeam.slice(0, nextValue);
+          return {
+            gameState: {
+              ...state.gameState,
+              maxMembers: nextValue,
+              playerTeam: nextTeam,
+            },
+          };
+        }),
+
       toggleMember: (agentId) => {
         const { gameState, agents } = get();
         const exists = gameState.playerTeam.find((a) => a.id === agentId);
@@ -312,7 +326,7 @@ const useAppStore = create(
           }));
           return;
         }
-        if (gameState.playerTeam.length >= 3) return;
+        if (gameState.playerTeam.length >= gameState.maxMembers) return;
         const agent = agents.find((a) => a.id === agentId);
         if (!agent) return;
         set((state) => ({
@@ -327,7 +341,7 @@ const useAppStore = create(
             return {
               gameState: {
                 ...state.gameState,
-                opponentTeam: remainingAgents.slice(0, 3),
+                opponentTeam: remainingAgents.slice(0, state.gameState.maxMembers),
                 setupPhase: "ready",
                 phase: "coinToss",
               },
@@ -344,7 +358,7 @@ const useAppStore = create(
           return {
             gameState: {
               ...state.gameState,
-              opponentTeam: remainingAgents.slice(0, 3),
+              opponentTeam: remainingAgents.slice(0, state.gameState.maxMembers),
               phase: "coinToss",
             },
           };

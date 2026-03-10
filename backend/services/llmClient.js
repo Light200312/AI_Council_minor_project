@@ -7,6 +7,8 @@ const OLLAMA_BASE_URL =
 const OLLAMA_ORCHESTRATOR_MODEL = process.env.OLLAMA_MODEL || "qwen2.5:latest";
 const OLLAMA_TIMEOUT_MS = Number(process.env.OLLAMA_TIMEOUT_MS || 60000);
 const ORCHESTRATOR_TIMEOUT_MS = Number(process.env.ORCHESTRATOR_TIMEOUT_MS || 15000);
+const ORCHESTRATOR_PROVIDER = process.env.ORCHESTRATOR_PROVIDER || "";
+const ORCHESTRATOR_MODEL = process.env.ORCHESTRATOR_MODEL || "";
 
 const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-1.5-flash";
 const CLAUDE_MODEL = process.env.CLAUDE_MODEL || "claude-3-5-sonnet-latest";
@@ -167,17 +169,73 @@ async function callAgentLLM({ provider, model, system, prompt, temperature = 0.4
 }
 
 async function callOrchestratorLLM({ system, prompt, temperature = 0.4 }) {
-  try {
-    return await callOllama({
-      system,
-      prompt,
-      model: OLLAMA_ORCHESTRATOR_MODEL,
-      temperature,
-      timeoutMs: ORCHESTRATOR_TIMEOUT_MS,
-    });
-  } catch (_) {
-    return "{}";
+  const providerCandidates = [];
+  if (ORCHESTRATOR_PROVIDER) providerCandidates.push(ORCHESTRATOR_PROVIDER);
+  if (!providerCandidates.includes("ollama")) providerCandidates.push("ollama");
+  if (!providerCandidates.includes("openrouter") && process.env.OPENROUTER_API_KEY) {
+    providerCandidates.push("openrouter");
   }
+  if (!providerCandidates.includes("gemini") && process.env.GEMINI_API_KEY) {
+    providerCandidates.push("gemini");
+  }
+  if (!providerCandidates.includes("claude") && process.env.CLAUDE_API_KEY) {
+    providerCandidates.push("claude");
+  }
+  if (
+    !providerCandidates.includes("deepseek") &&
+    (process.env.DEEPSEEK_API_KEY || process.env.DEEPSEARCH_API_KEY)
+  ) {
+    providerCandidates.push("deepseek");
+  }
+
+  const errors = [];
+  for (const provider of providerCandidates) {
+    try {
+      switch (provider) {
+        case "gemini":
+          return await callGemini({
+            system,
+            prompt,
+            model: ORCHESTRATOR_MODEL || GEMINI_MODEL,
+            temperature,
+          });
+        case "claude":
+          return await callClaude({
+            system,
+            prompt,
+            model: ORCHESTRATOR_MODEL || CLAUDE_MODEL,
+            temperature,
+          });
+        case "deepseek":
+          return await callDeepSeek({
+            system,
+            prompt,
+            model: ORCHESTRATOR_MODEL || DEEPSEEK_MODEL,
+            temperature,
+          });
+        case "openrouter":
+          return await callOpenRouter({
+            system,
+            prompt,
+            model: ORCHESTRATOR_MODEL || OPENROUTER_MODEL,
+            temperature,
+          });
+        case "ollama":
+        default:
+          return await callOllama({
+            system,
+            prompt,
+            model: ORCHESTRATOR_MODEL || OLLAMA_ORCHESTRATOR_MODEL,
+            temperature,
+            timeoutMs: ORCHESTRATOR_TIMEOUT_MS,
+          });
+      }
+    } catch (error) {
+      errors.push(error);
+    }
+  }
+
+  throw new Error("Orchestrator model unavailable.");
 }
 
 export {

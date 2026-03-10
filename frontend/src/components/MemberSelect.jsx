@@ -12,7 +12,8 @@ function MemberSelect({
   onConfirm,
   onBack,
   onOpenPersonaEditor,
-  maxSelection = 3
+  maxSelection = 3,
+  onMaxSelectionChange
 }) {
   const [searchQuery, setSearchQuery] = useState("");
   const remaining = maxSelection - selectedAgents.length;
@@ -56,11 +57,27 @@ function MemberSelect({
               startAdornment={<Search className="w-4 h-4 text-slate-400" />}
             />
           </div>
-          {onOpenPersonaEditor ? (
-            <Button size="large" onClick={onOpenPersonaEditor}>
-              Create Agent
-            </Button>
-          ) : null}
+          <div className="flex items-end gap-3">
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-mono text-slate-500">Council size</label>
+              <select
+                className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700"
+                value={maxSelection}
+                onChange={(e) => onMaxSelectionChange?.(e.target.value)}
+              >
+                {[3, 4, 5, 6, 7, 8].map((n) => (
+                  <option key={n} value={n}>
+                    {n} members
+                  </option>
+                ))}
+              </select>
+            </div>
+            {onOpenPersonaEditor ? (
+              <Button size="large" onClick={onOpenPersonaEditor}>
+                Create Agent
+              </Button>
+            ) : null}
+          </div>
         </div>
 
         {searchQuery.trim() && <p className="text-xs font-mono text-slate-400 mb-4">

@@ -139,6 +139,10 @@ async function suggestAgentsFromTopic({
     }))
     .filter((s) => s.draft?.name);
 
+  if (!suggestions.length) {
+    throw new Error("No suggestions returned from the model.");
+  }
+
   return {
     analysis: {
       domain: String(analysis?.domain || "").trim(),
@@ -224,4 +228,3 @@ export {
   computeInitials,
   generateAgentId,
 };
-
