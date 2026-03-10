@@ -1,6 +1,7 @@
 import express from "express";
 import Agent from "../models/agent.js";
 import { runAgentStep } from "../services/agentRuntime.js";
+import { findOrDraftAgentByName, normalizeAgentDraft, suggestAgentsFromTopic } from "../services/agentCreator.js";
 import authGuard from "../middleware/auth.js";
 
 const router = express.Router();
@@ -14,6 +15,40 @@ router.get("/", authGuard, async (_req, res) => {
   }
 });
 
+router.post("/", authGuard, async (req, res) => {
+  try {
+    const payload = req.body || {};
+    const createdBy = req.auth?.sub ? req.auth.sub : undefined;
+
+    const draft = normalizeAgentDraft(payload, {
+      topic: payload?.sourceTopic,
+      createdBy,
+      createdFrom: payload?.createdFrom || "manual",
+      nameQuery: payload?.sourceNameQuery,
+    });
+
+    if (!draft.name) return res.status(400).json({ message: "name is required." });
+    if (!draft.role) return res.status(400).json({ message: "role is required." });
+    if (!draft.era) return res.status(400).json({ message: "era is required." });
+    if (!draft.description) return res.status(400).json({ message: "description is required." });
+
+    const existingById = await Agent.findOne({ id: draft.id }).lean();
+    if (existingById) {
+      return res.status(409).json({ message: "Agent id already exists.", agent: existingById });
+    }
+
+    const existingByName = await Agent.findOne({ name: new RegExp(`^${draft.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i") }).lean();
+    if (existingByName) {
+      return res.status(409).json({ message: "Agent name already exists.", agent: existingByName });
+    }
+
+    const agent = await Agent.create(draft);
+    return res.status(201).json({ agent });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to create agent.", error: error.message });
+  }
+});
+
 router.get("/:id", authGuard, async (req, res) => {
   try {
     const agent = await Agent.findOne({ id: req.params.id }).lean();
@@ -21,6 +56,39 @@ router.get("/:id", authGuard, async (req, res) => {
     return res.json({ agent });
   } catch (error) {
     return res.status(500).json({ message: "Failed to fetch agent.", error: error.message });
+  }
+});
+
+router.post("/suggest", authGuard, async (req, res) => {
+  try {
+    const { topic, maxSuggestions = 6 } = req.body || {};
+    const createdBy = req.auth?.sub ? req.auth.sub : undefined;
+    if (!topic) return res.status(400).json({ message: "topic is required." });
+
+    const result = await suggestAgentsFromTopic({ topic, maxSuggestions, createdBy });
+    return res.json({
+      analysis: result.analysis,
+      suggestions: result.suggestions,
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to generate suggestions.", error: error.message });
+  }
+});
+
+router.post("/find", authGuard, async (req, res) => {
+  try {
+    const { name, topic } = req.body || {};
+    const createdBy = req.auth?.sub ? req.auth.sub : undefined;
+    if (!name) return res.status(400).json({ message: "name is required." });
+
+    const result = await findOrDraftAgentByName({ name, topic, createdBy });
+    return res.json({
+      existing: result.existing,
+      draft: result.draft,
+      notes: result.notes || "",
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to find character.", error: error.message });
   }
 });
 

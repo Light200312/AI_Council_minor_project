@@ -11,6 +11,7 @@ function MemberSelect({
   onToggleAgent,
   onConfirm,
   onBack,
+  onOpenPersonaEditor,
   maxSelection = 3
 }) {
   const [searchQuery, setSearchQuery] = useState("");
@@ -46,14 +47,20 @@ function MemberSelect({
           </div>
         </div>
 
-        <div className="mb-6 max-w-md">
-          <Input
-    placeholder="Search experts by name, role, era..."
-    value={searchQuery}
-    onChange={(e) => setSearchQuery(e.target.value)}
-    startAdornment={<Search className="w-4 h-4 text-slate-400" />}
-  />
-
+        <div className="mb-6 flex items-end justify-between gap-4">
+          <div className="max-w-md w-full">
+            <Input
+              placeholder="Search experts by name, role, era..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              startAdornment={<Search className="w-4 h-4 text-slate-400" />}
+            />
+          </div>
+          {onOpenPersonaEditor ? (
+            <Button size="large" onClick={onOpenPersonaEditor}>
+              Create Agent
+            </Button>
+          ) : null}
         </div>
 
         {searchQuery.trim() && <p className="text-xs font-mono text-slate-400 mb-4">

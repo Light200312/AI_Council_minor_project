@@ -57,6 +57,37 @@ const useAppStore = create(
         }
       },
 
+      reloadAgents: async () => {
+        const token = get().token;
+        if (!token) return;
+        try {
+          const { agents } = await api.listAgents(token);
+          set({ agents: agents?.length ? agents : FALLBACK_AGENTS });
+        } catch (_) {
+          set({ agents: FALLBACK_AGENTS });
+        }
+      },
+
+      createAgent: async (payload) => {
+        const token = get().token;
+        if (!token) throw new Error("Not authenticated.");
+        const { agent } = await api.createAgent(payload, token);
+        await get().reloadAgents();
+        return agent;
+      },
+
+      suggestAgents: async ({ topic, maxSuggestions } = {}) => {
+        const token = get().token;
+        if (!token) throw new Error("Not authenticated.");
+        return api.suggestAgents({ topic, maxSuggestions }, token);
+      },
+
+      findAgentDraft: async ({ name, topic } = {}) => {
+        const token = get().token;
+        if (!token) throw new Error("Not authenticated.");
+        return api.findAgentDraft({ name, topic }, token);
+      },
+
       authenticate: async (mode, payload) => {
         const response = mode === "register" ? await api.register(payload) : await api.login(payload);
         set({ token: response.token, user: response.user });

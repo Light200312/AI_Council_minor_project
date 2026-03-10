@@ -39,6 +39,7 @@ function App() {
   const setCombatStarted = useAppStore((state) => state.setCombatStarted);
   const applyStrategyRound = useAppStore((state) => state.applyStrategyRound);
   const setBiasLevel = useAppStore((state) => state.setBiasLevel);
+  const reloadAgents = useAppStore((state) => state.reloadAgents);
 
   const [activeTab, setActiveTab] = useState("arena");
   const [isPersonaEditorOpen, setIsPersonaEditorOpen] = useState(false);
@@ -105,27 +106,63 @@ function App() {
     }
 
     return (
-      <ModeSelect
-        onSelectMode={setMode}
-        onOpenHistory={() => {
-          setShowSetupHistory(true);
-          loadDiscussionHistory();
-        }}
-      />
+      <>
+        <ModeSelect
+          onSelectMode={setMode}
+          onOpenHistory={() => {
+            setShowSetupHistory(true);
+            loadDiscussionHistory();
+          }}
+        />
+        <PersonaEditor
+          isOpen={isPersonaEditorOpen}
+          onClose={() => setIsPersonaEditorOpen(false)}
+          onCreated={async (agent) => {
+            if (!agent?.id) return;
+            await reloadAgents();
+            toggleMember(agent.id);
+          }}
+        />
+      </>
     );
   }
   if (gameState.setupPhase === "topicSelect") {
-    return <TopicSelect onSelectTopic={setTopic} onBack={() => goToSetupPhase("modeSelect")} />;
+    return (
+      <>
+        <TopicSelect onSelectTopic={setTopic} onBack={() => goToSetupPhase("modeSelect")} />
+        <PersonaEditor
+          isOpen={isPersonaEditorOpen}
+          onClose={() => setIsPersonaEditorOpen(false)}
+          onCreated={async (agent) => {
+            if (!agent?.id) return;
+            await reloadAgents();
+            toggleMember(agent.id);
+          }}
+        />
+      </>
+    );
   }
   if (gameState.setupPhase === "memberSelect") {
     return (
-      <MemberSelect
-        availableAgents={agents}
-        selectedAgents={gameState.playerTeam.map((a) => a.id)}
-        onToggleAgent={toggleMember}
-        onConfirm={completeSetup}
-        onBack={() => goToSetupPhase("topicSelect")}
-      />
+      <>
+        <MemberSelect
+          availableAgents={agents}
+          selectedAgents={gameState.playerTeam.map((a) => a.id)}
+          onToggleAgent={toggleMember}
+          onConfirm={completeSetup}
+          onBack={() => goToSetupPhase("topicSelect")}
+          onOpenPersonaEditor={() => setIsPersonaEditorOpen(true)}
+        />
+        <PersonaEditor
+          isOpen={isPersonaEditorOpen}
+          onClose={() => setIsPersonaEditorOpen(false)}
+          onCreated={async (agent) => {
+            if (!agent?.id) return;
+            await reloadAgents();
+            toggleMember(agent.id);
+          }}
+        />
+      </>
     );
   }
 
@@ -207,7 +244,11 @@ function App() {
       <PersonaEditor
         isOpen={isPersonaEditorOpen}
         onClose={() => setIsPersonaEditorOpen(false)}
-        onSave={(agent) => console.log("New agent:", agent)}
+        onCreated={async (agent) => {
+          if (!agent?.id) return;
+          await reloadAgents();
+          toggleMember(agent.id);
+        }}
       />
     </div>
   );

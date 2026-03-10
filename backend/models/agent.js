@@ -16,6 +16,15 @@ const agentSchema = new mongoose.Schema(
     specialAbility: { type: String, required: true, trim: true },
     avatarInitials: { type: String, required: true, trim: true },
     imageUrl: { type: String, trim: true },
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    createdFrom: {
+      type: String,
+      enum: ["manual", "ai_suggest", "ai_find"],
+      default: "manual",
+    },
+    sourceTopic: { type: String, trim: true },
+    sourceNameQuery: { type: String, trim: true },
+    tags: [{ type: String, trim: true }],
   },
   { timestamps: true }
 );

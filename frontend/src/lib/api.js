@@ -37,6 +37,11 @@ const api = {
   login: (payload) => request("/auth/login", { method: "POST", body: payload }),
   me: (token) => request("/auth/me", { token }),
   listAgents: (token) => request("/agents", { token }),
+  createAgent: (payload, token) => request("/agents", { method: "POST", body: payload, token }),
+  suggestAgents: (payload, token) =>
+    request("/agents/suggest", { method: "POST", body: payload, token }),
+  findAgentDraft: (payload, token) =>
+    request("/agents/find", { method: "POST", body: payload, token }),
   listMessages: (token, params) => request(`/messages${toQuery(params)}`, { token }),
   createMessage: (payload, token) =>
     request("/messages", { method: "POST", body: payload, token }),
