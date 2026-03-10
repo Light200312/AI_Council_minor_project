@@ -42,11 +42,19 @@ const api = {
     request("/agents/suggest", { method: "POST", body: payload, token }),
   findAgentDraft: (payload, token) =>
     request("/agents/find", { method: "POST", body: payload, token }),
+  respondAgent: (agentId, payload, token) =>
+    request(`/agents/${agentId}/respond`, { method: "POST", body: payload, token }),
   listMessages: (token, params) => request(`/messages${toQuery(params)}`, { token }),
   createMessage: (payload, token) =>
     request("/messages", { method: "POST", body: payload, token }),
   runOrchestrator: (payload, token) =>
     request("/orchestrator/run", { method: "POST", body: payload, token }),
+  combatSelectOpponentTeam: (payload, token) =>
+    request("/combat/opponent/select-team", { method: "POST", body: payload, token }),
+  combatNextOpponentTurn: (payload, token) =>
+    request("/combat/opponent/next-turn", { method: "POST", body: payload, token }),
+  combatJudgeRound: (payload, token) =>
+    request("/combat/judge", { method: "POST", body: payload, token }),
 };
 
 export { api, API_BASE_URL };

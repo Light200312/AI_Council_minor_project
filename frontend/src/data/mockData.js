@@ -264,6 +264,15 @@ const MENTOR_MOCK_MESSAGES = [
 // Strategy cards available in combat mode.
 const STRATEGIES = [
   {
+    id: "free",
+    type: "free_style",
+    title: "Free Style",
+    description: "Adaptive response that shifts tone and temperature based on the opponent.",
+    logicScore: 85,
+    rhetoricScore: 85,
+    riskLevel: "Adaptive"
+  },
+  {
     id: "agg",
     type: "aggressive",
     title: "Direct Attack",
@@ -305,6 +314,11 @@ const MOCK_HEATMAP = Array(6).fill(0).map(
 );
 // Mock generated argument snippets keyed by strategy type.
 const MOCK_ARGUMENTS = {
+  free_style: [
+    "I will respond in the most effective tone for this exchange, adjusting intensity to match the strength of your claim while staying focused on the core logic.",
+    "Let me calibrate the response to your argument and address the strongest points first, then tighten the logic where it is weakest.",
+    "I'll adapt the response based on your framing, balancing clarity, precision, and persuasion as needed."
+  ],
   aggressive: [
     "Your entire premise collapses under scrutiny. The data you cite is cherry-picked from a single flawed study, while the overwhelming consensus points in the opposite direction. This isn't a matter of interpretation \u2014 it's a matter of intellectual honesty.",
     "Let's cut through the rhetoric. Your argument relies on an appeal to tradition that has been debunked repeatedly. The evidence is clear, and continuing to defend this position is simply untenable.",

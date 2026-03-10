@@ -4,13 +4,45 @@ import { Card, CardHeader, CardContent } from "./ui/Card";
 function LiveAnalytics({
   heatmapData,
   playerScore,
-  opponentScore
+  opponentScore,
+  lastVerdict,
+  currentRound,
+  totalRounds
 }) {
   const roundLabels = ["R1", "R2", "R3", "R4", "R5", "R6"];
   const playerRoundScores = heatmapData[0] || [65, 72, 58, 85, 90, 78];
   const opponentRoundScores = heatmapData[1] || [55, 68, 75, 60, 45, 82];
   const maxScore = Math.max(...playerRoundScores, ...opponentRoundScores, 1);
   return <div className="space-y-6">
+      {lastVerdict ? (
+        <Card>
+          <CardHeader title="Last Verdict" className="pb-2" />
+          <CardContent>
+            <div className="flex items-center justify-between text-xs font-mono text-slate-500 mb-2">
+              <span>Round {currentRound || 1}</span>
+              <span>{totalRounds ? `${currentRound || 1}/${totalRounds}` : "Infinite"}</span>
+            </div>
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm font-bold text-slate-700">Winner</span>
+              <span className="text-sm font-mono text-slate-900">
+                {String(lastVerdict.winner || "tie").toUpperCase()}
+              </span>
+            </div>
+            <div className="text-xs text-slate-600 mb-3">
+              {lastVerdict.reasoning || "No reasoning provided."}
+            </div>
+            <div className="grid grid-cols-2 gap-3 text-xs font-mono">
+              <div className="rounded-md border border-slate-200 bg-slate-50 p-2">
+                Player: {Math.round((lastVerdict.probabilities?.player || 0) * 100)}%
+              </div>
+              <div className="rounded-md border border-slate-200 bg-slate-50 p-2">
+                Opponent: {Math.round((lastVerdict.probabilities?.opponent || 0) * 100)}%
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
+
       {
     /* Scoreboard */
   }
@@ -128,6 +160,7 @@ function LiveAnalytics({
           </div>
         </CardContent>
       </Card>
+
     </div>;
 }
 export {

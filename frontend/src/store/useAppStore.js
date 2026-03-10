@@ -13,10 +13,18 @@ function initialGameState() {
     setupPhase: "modeSelect",
     phase: "draft",
     currentRound: 1,
-    totalRounds: 5,
+    totalRounds: 10,
     playerTeam: [],
     opponentTeam: [],
     maxMembers: 3,
+    argumentLimit: 10,
+    difficulty: "standard",
+    activeTurn: "player",
+    roundStarter: "player",
+    roundStep: 0,
+    combatLog: [],
+    roundResults: [],
+    lastVerdict: null,
     playerScore: 0,
     opponentScore: 0,
     biasLevel: 50,
@@ -31,7 +39,7 @@ const useAppStore = create(
     (set, get) => ({
       token: "",
       user: null,
-      apiRoutingMode: "persona",
+      apiRoutingMode: "openrouter_only",
       orchestratorMode: "fast",
       agents: FALLBACK_AGENTS,
       messages: [],
@@ -89,6 +97,31 @@ const useAppStore = create(
         return api.findAgentDraft({ name, topic }, token);
       },
 
+      respondAsAgent: async ({ agentId, taskGoal, messages = [], outputConstraints }) => {
+        const token = get().token;
+        if (!token) throw new Error("Not authenticated.");
+        return api.respondAgent(
+          agentId,
+          { taskGoal, messages, outputConstraints, apiRoutingMode: get().apiRoutingMode },
+          token
+        );
+      },
+
+      combatNextOpponentTurn: async ({ topic, opponentTeamIds, userArgument, strategies, difficulty }) => {
+        const token = get().token;
+        if (!token) throw new Error("Not authenticated.");
+        return api.combatNextOpponentTurn(
+          { topic, opponentTeamIds, userArgument, strategies, difficulty },
+          token
+        );
+      },
+
+      combatJudgeRound: async ({ topic, playerArgument, opponentArgument }) => {
+        const token = get().token;
+        if (!token) throw new Error("Not authenticated.");
+        return api.combatJudgeRound({ topic, playerArgument, opponentArgument }, token);
+      },
+
       authenticate: async (mode, payload) => {
         const response = mode === "register" ? await api.register(payload) : await api.login(payload);
         set({ token: response.token, user: response.user });
@@ -98,7 +131,7 @@ const useAppStore = create(
         set({
           token: "",
           user: null,
-          apiRoutingMode: "persona",
+          apiRoutingMode: "openrouter_only",
           orchestratorMode: "fast",
           gameState: initialGameState(),
           messages: [],
@@ -301,6 +334,24 @@ const useAppStore = create(
       goToSetupPhase: (setupPhase) =>
         set((state) => ({ gameState: { ...state.gameState, setupPhase } })),
 
+      setArgumentLimit: (value) =>
+        set((state) => {
+          const parsed = value === "infinite" ? "infinite" : Number(value);
+          const totalRounds = parsed === "infinite" ? null : Math.max(1, Math.min(50, parsed || 10));
+          return {
+            gameState: {
+              ...state.gameState,
+              argumentLimit: parsed === "infinite" ? "infinite" : totalRounds,
+              totalRounds,
+            },
+          };
+        }),
+
+      setDifficulty: (difficulty) =>
+        set((state) => ({
+          gameState: { ...state.gameState, difficulty: difficulty || "standard" },
+        })),
+
       setMaxMembers: (value) =>
         set((state) => {
           const nextValue = Math.max(1, Math.min(8, Number(value) || 3));
@@ -334,23 +385,42 @@ const useAppStore = create(
         }));
       },
 
-      completeSetup: () =>
-        set((state) => {
-          if (state.gameState.mode === "combat") {
-            const remainingAgents = state.agents.filter((a) => !state.gameState.playerTeam.includes(a));
-            return {
-              gameState: {
-                ...state.gameState,
-                opponentTeam: remainingAgents.slice(0, state.gameState.maxMembers),
-                setupPhase: "ready",
-                phase: "coinToss",
-              },
-            };
+      completeSetup: async () => {
+        const token = get().token;
+        const { gameState, agents } = get();
+        if (gameState.mode === "combat") {
+          const remainingAgents = agents.filter((a) => !gameState.playerTeam.includes(a));
+          let opponentTeam = remainingAgents.slice(0, gameState.maxMembers);
+          if (token) {
+            try {
+              const result = await api.combatSelectOpponentTeam(
+                {
+                  topic: gameState.topic,
+                  candidateIds: remainingAgents.map((a) => a.id),
+                  count: gameState.maxMembers,
+                  difficulty: gameState.difficulty,
+                },
+                token
+              );
+              if (result?.opponentTeam?.length) {
+                opponentTeam = result.opponentTeam;
+              }
+            } catch (_) {}
           }
-          return {
-            gameState: { ...state.gameState, setupPhase: "ready" },
-          };
-        }),
+          set({
+            gameState: {
+              ...gameState,
+              opponentTeam,
+              setupPhase: "ready",
+              phase: "coinToss",
+            },
+          });
+          return;
+        }
+        set({
+          gameState: { ...gameState, setupPhase: "ready" },
+        });
+      },
 
       confirmDraft: () =>
         set((state) => {
@@ -379,6 +449,26 @@ const useAppStore = create(
       setBiasLevel: (biasLevel) =>
         set((state) => ({ gameState: { ...state.gameState, biasLevel } })),
 
+      updateGameState: (partial) =>
+        set((state) => ({ gameState: { ...state.gameState, ...partial } })),
+
+      appendCombatLog: (entry) =>
+        set((state) => ({
+          gameState: {
+            ...state.gameState,
+            combatLog: [...state.gameState.combatLog, entry],
+          },
+        })),
+
+      addRoundResult: (result) =>
+        set((state) => ({
+          gameState: {
+            ...state.gameState,
+            roundResults: [...state.gameState.roundResults, result],
+            lastVerdict: result,
+          },
+        })),
+
       setApiRoutingMode: (apiRoutingMode) => set({ apiRoutingMode }),
       setOrchestratorMode: (orchestratorMode) => set({ orchestratorMode }),
 
@@ -396,6 +486,11 @@ const useAppStore = create(
       partialize: (state) => ({
         token: state.token,
         user: state.user,
+        apiRoutingMode: state.apiRoutingMode,
+        orchestratorMode: state.orchestratorMode,
+        gameState: state.gameState,
+        discussionHistory: state.discussionHistory,
+        messages: state.messages,
       }),
     }
   )

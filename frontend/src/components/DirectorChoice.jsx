@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Card, CardHeader, CardContent } from "./ui/Card";
 import { Button } from "./ui/Button";
 import {
@@ -8,20 +7,21 @@ import {
   Eye,
   Send,
   X,
-  RotateCcw
+  RotateCcw,
+  Sparkles
 } from "lucide-react";
-import { MOCK_ARGUMENTS } from "../data/mockData";
-
 // DirectorChoice lets the user preview and submit a strategic response.
 function DirectorChoice({
   options,
   onSelect,
-  isLoading
+  isLoading,
+  previewStrategy,
+  previewText,
+  previewLoading,
+  onGeneratePreview,
+  onDiscardPreview,
+  onSendPreview
 }) {
-  const [previewStrategy, setPreviewStrategy] = useState(
-    null
-  );
-  const [previewText, setPreviewText] = useState("");
   // Map strategy type to a visual icon for quick scanning.
   const getIcon = (type) => {
     switch (type) {
@@ -31,6 +31,8 @@ function DirectorChoice({
         return <Scale className="w-5 h-5 text-blue-600" />;
       case "logical":
         return <Brain className="w-5 h-5 text-purple-600" />;
+      case "free_style":
+        return <Sparkles className="w-5 h-5 text-emerald-600" />;
       default:
         return <Zap className="w-5 h-5" />;
     }
@@ -44,38 +46,44 @@ function DirectorChoice({
         return "hover:border-blue-300 hover:bg-blue-50";
       case "logical":
         return "hover:border-purple-300 hover:bg-purple-50";
+      case "free_style":
+        return "hover:border-emerald-300 hover:bg-emerald-50";
       default:
         return "";
+    }
+  };
+  const getRiskBadgeClass = (riskLevel) => {
+    switch (riskLevel) {
+      case "High":
+        return "bg-red-100 text-red-700";
+      case "Medium":
+        return "bg-yellow-100 text-yellow-700";
+      case "Low":
+        return "bg-green-100 text-green-700";
+      case "Adaptive":
+        return "bg-emerald-100 text-emerald-700";
+      default:
+        return "bg-slate-100 text-slate-700";
     }
   };
   // Generate a preview argument before final submission.
   const handleStrategyClick = (option) => {
     if (isLoading) return;
-    const args = MOCK_ARGUMENTS[option.type] || MOCK_ARGUMENTS["balanced"];
-    const randomArg = args[Math.floor(Math.random() * args.length)];
-    setPreviewStrategy(option);
-    setPreviewText(randomArg);
+    onSelect(option);
   };
   // Send the selected previewed strategy to the parent controller.
   const handleSend = () => {
-    if (previewStrategy) {
-      onSelect(previewStrategy);
-      setPreviewStrategy(null);
-      setPreviewText("");
+    if (previewStrategy && previewText) {
+      onSendPreview?.();
     }
   };
   // Clear the current preview and return to strategy list.
   const handleDiscard = () => {
-    setPreviewStrategy(null);
-    setPreviewText("");
+    onDiscardPreview?.();
   };
   // Refresh preview text while keeping the same strategy.
   const handleRegenerate = () => {
-    if (previewStrategy) {
-      const args = MOCK_ARGUMENTS[previewStrategy.type] || MOCK_ARGUMENTS["balanced"];
-      const randomArg = args[Math.floor(Math.random() * args.length)];
-      setPreviewText(randomArg);
-    }
+    if (previewStrategy) onGeneratePreview?.();
   };
   return <div className="w-full bg-white border-t border-slate-200 p-6 shadow-lg">
       <div className="max-w-7xl mx-auto">
@@ -104,7 +112,7 @@ function DirectorChoice({
                   {previewStrategy.title}
                 </span>
                 <span
-    className={`ml-3 text-xs px-2 py-0.5 rounded font-mono ${previewStrategy.riskLevel === "High" ? "bg-red-100 text-red-700" : previewStrategy.riskLevel === "Medium" ? "bg-yellow-100 text-yellow-700" : "bg-green-100 text-green-700"}`}
+    className={`ml-3 text-xs px-2 py-0.5 rounded font-mono ${getRiskBadgeClass(previewStrategy.riskLevel)}`}
   >
 
                   {previewStrategy.riskLevel} Risk
@@ -123,7 +131,7 @@ function DirectorChoice({
                 </span>
               </div>
               <p className="text-sm text-slate-700 leading-relaxed font-mono">
-                "{previewText}"
+                {previewText ? `"${previewText}"` : "No preview generated yet."}
               </p>
               <div className="flex items-center gap-4 mt-4 pt-3 border-t border-slate-200 text-xs font-mono text-slate-500">
                 <div className="flex items-center gap-1">
@@ -145,11 +153,12 @@ function DirectorChoice({
     /* Action Buttons */
   }
             <div className="flex items-center justify-between">
-              <Button
+                <Button
     variant="tertiary"
     size="small"
     leftIcon={<RotateCcw className="w-4 h-4" />}
     onClick={handleRegenerate}
+    disabled={previewLoading}
   >
 
                 Regenerate
@@ -160,6 +169,7 @@ function DirectorChoice({
     size="medium"
     leftIcon={<X className="w-4 h-4" />}
     onClick={handleDiscard}
+    disabled={previewLoading}
   >
 
                   Discard
@@ -169,6 +179,8 @@ function DirectorChoice({
     size="medium"
     leftIcon={<Send className="w-4 h-4" />}
     onClick={handleSend}
+    loading={previewLoading || isLoading}
+    disabled={previewLoading || isLoading || !previewText}
   >
 
                   Send Argument
@@ -198,7 +210,7 @@ function DirectorChoice({
                         </span>
                       </div>
                       <span
-      className={`text-xs px-2 py-1 rounded font-mono ${option.riskLevel === "High" ? "bg-red-100 text-red-700" : option.riskLevel === "Medium" ? "bg-yellow-100 text-yellow-700" : "bg-green-100 text-green-700"}`}
+      className={`text-xs px-2 py-1 rounded font-mono ${getRiskBadgeClass(option.riskLevel)}`}
     >
 
                         {option.riskLevel} Risk

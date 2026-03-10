@@ -1,8 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Sidebar } from "./components/Sidebar";
 import { ControlBar } from "./components/ControlBar";
 import { DraftBoard } from "./components/DraftBoard";
-import { Arena } from "./components/Arena";
 import { DirectorChoice } from "./components/DirectorChoice";
 import { LiveAnalytics } from "./components/LiveAnalytics";
 import { BiasSlider } from "./components/BiasSlider";
@@ -37,21 +36,80 @@ function App() {
   const discussionHistory = useAppStore((state) => state.discussionHistory);
   const isLoadingHistory = useAppStore((state) => state.isLoadingHistory);
   const setCombatStarted = useAppStore((state) => state.setCombatStarted);
-  const applyStrategyRound = useAppStore((state) => state.applyStrategyRound);
   const setBiasLevel = useAppStore((state) => state.setBiasLevel);
   const reloadAgents = useAppStore((state) => state.reloadAgents);
   const maxMembers = useAppStore((state) => state.gameState.maxMembers);
   const setMaxMembers = useAppStore((state) => state.setMaxMembers);
+  const argumentLimit = useAppStore((state) => state.gameState.argumentLimit);
+  const setArgumentLimit = useAppStore((state) => state.setArgumentLimit);
+  const difficulty = useAppStore((state) => state.gameState.difficulty);
+  const setDifficulty = useAppStore((state) => state.setDifficulty);
+  const respondAsAgent = useAppStore((state) => state.respondAsAgent);
+  const combatNextOpponentTurn = useAppStore((state) => state.combatNextOpponentTurn);
+  const combatJudgeRound = useAppStore((state) => state.combatJudgeRound);
+  const appendCombatLog = useAppStore((state) => state.appendCombatLog);
+  const addRoundResult = useAppStore((state) => state.addRoundResult);
+  const updateGameState = useAppStore((state) => state.updateGameState);
+  const lastVerdict = useAppStore((state) => state.gameState.lastVerdict);
+  const roundResults = useAppStore((state) => state.gameState.roundResults);
 
   const [activeTab, setActiveTab] = useState("arena");
   const [isPersonaEditorOpen, setIsPersonaEditorOpen] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [activeSpeakerId, setActiveSpeakerId] = useState();
+  const [selectedStrategy, setSelectedStrategy] = useState(
+    STRATEGIES.find((s) => s.type === "free_style") || null
+  );
+  const [isResolvingTurn, setIsResolvingTurn] = useState(false);
+  const [pendingOpponentArgument, setPendingOpponentArgument] = useState(null);
+  const [selectedSpeakerId, setSelectedSpeakerId] = useState(null);
+  const [previewText, setPreviewText] = useState("");
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [tweakInstruction, setTweakInstruction] = useState("");
+  const [showRightSidebar, setShowRightSidebar] = useState(true);
+  const userRowRefs = useRef([]);
+  const opponentRowRefs = useRef([]);
+  const [rowHeights, setRowHeights] = useState([]);
   const [showSetupHistory, setShowSetupHistory] = useState(false);
 
   useEffect(() => {
     bootstrapSession();
   }, [bootstrapSession]);
+
+  const roundPairs = useMemo(() => {
+    const pairs = [];
+    let current = { round: 1, player: null, opponent: null };
+    gameState.combatLog.forEach((entry) => {
+      if (entry.isUser) {
+        if (current.player || current.opponent) {
+          pairs.push(current);
+          current = { round: current.round + 1, player: null, opponent: null };
+        }
+        current.player = entry;
+      } else {
+        if (current.opponent) {
+          pairs.push(current);
+          current = { round: current.round + 1, player: null, opponent: null };
+        }
+        current.opponent = entry;
+      }
+    });
+    if (current.player || current.opponent) pairs.push(current);
+    return pairs;
+  }, [gameState.combatLog]);
+
+  useLayoutEffect(() => {
+    const heights = roundPairs.map((_, index) => {
+      const left = userRowRefs.current[index];
+      const right = opponentRowRefs.current[index];
+      const leftHeight = left ? left.offsetHeight : 0;
+      const rightHeight = right ? right.offsetHeight : 0;
+      return Math.max(leftHeight, rightHeight, 0);
+    });
+    setRowHeights(heights);
+  }, [roundPairs, previewText, gameState.combatLog.length]);
+
+
 
   const simulateTurn = (speakerId) => {
     setActiveSpeakerId(speakerId);
@@ -64,16 +122,224 @@ function App() {
 
   const handleCoinTossComplete = (winner) => {
     setCombatStarted();
-    const firstSpeaker =
-      winner === "player" ? gameState.playerTeam[0]?.id : gameState.opponentTeam[0]?.id;
-    if (firstSpeaker) simulateTurn(firstSpeaker);
+    updateGameState({
+      phase: "combat",
+      activeTurn: winner,
+      roundStarter: winner,
+      roundStep: 0,
+      currentRound: 1,
+    });
+    if (winner === "opponent") {
+      setTimeout(() => {
+        runOpponentTurn({ userArgument: "" });
+      }, 400);
+    }
   };
 
-  const handleStrategySelect = () => {
-    const speaker = gameState.playerTeam[gameState.currentRound % gameState.playerTeam.length];
-    if (speaker?.id) simulateTurn(speaker.id);
-    applyStrategyRound();
+  const buildOutputConstraints = (strategy, role = "player") => {
+    const base = `Stay in character. Respond to the debate topic directly. Keep it concise but strong.`;
+    const strategyLine =
+      strategy?.type === "free_style"
+        ? "Choose the best tone and intensity based on the opponent's last argument."
+        : `Use the ${strategy?.title || "selected"} strategy style.`;
+    const roleLine = role === "opponent" ? "You are the opponent." : "You are the player.";
+    return `${base} ${strategyLine} ${roleLine}`;
   };
+
+  const runOpponentTurn = async ({ userArgument }) => {
+    const state = useAppStore.getState();
+    if (state.gameState.activeTurn !== "opponent") return;
+    const opponentTeamIds = state.gameState.opponentTeam.map((a) => a.id);
+    if (!opponentTeamIds.length) return;
+
+    setIsResolvingTurn(true);
+    const decision = await combatNextOpponentTurn({
+      topic: state.gameState.topic,
+      opponentTeamIds,
+      userArgument,
+      strategies: STRATEGIES,
+      difficulty: state.gameState.difficulty,
+    });
+    const opponentAgent = state.gameState.opponentTeam.find((a) => a.id === decision.agentId);
+    const strategy = STRATEGIES.find((s) => s.type === decision.strategyType) || STRATEGIES[0];
+
+    setIsSpeaking(true);
+    setActiveSpeakerId(decision.agentId);
+    const opponentResponse = await respondAsAgent({
+      agentId: decision.agentId,
+      taskGoal: state.gameState.topic,
+      messages: state.gameState.combatLog,
+      outputConstraints: buildOutputConstraints(strategy, "opponent"),
+    });
+    setIsSpeaking(false);
+    const opponentText = opponentResponse?.response?.text || "";
+    if (opponentAgent) {
+      appendCombatLog({
+        speakerId: opponentAgent.id,
+        speakerName: opponentAgent.name,
+        speakerInitials: opponentAgent.avatarInitials,
+        isUser: false,
+        text: opponentText,
+        timestamp: Date.now(),
+      });
+    }
+
+    updateGameState({
+      activeTurn: "player",
+      roundStep: 1,
+    });
+
+    setPendingOpponentArgument({
+      text: opponentText,
+      agentId: decision.agentId,
+      strategyType: strategy.type,
+    });
+    setIsResolvingTurn(false);
+  };
+
+  const handleStrategySelect = (strategy) => {
+    setSelectedStrategy(strategy);
+    setPreviewText("");
+  };
+
+  const handleSpeakerSelect = (agentId) => {
+    if (gameState.phase !== "combat") return;
+    if (gameState.activeTurn !== "player") return;
+    if (!selectedStrategy || isResolvingTurn) return;
+    setSelectedSpeakerId(agentId);
+    setPreviewText("");
+  };
+
+  const generatePreview = async () => {
+    const state = useAppStore.getState();
+    if (!selectedSpeakerId || !selectedStrategy) return;
+    if (state.gameState.activeTurn !== "player") return;
+    setPreviewLoading(true);
+    setIsSpeaking(true);
+    setActiveSpeakerId(selectedSpeakerId);
+    const lastOpponent = [...state.gameState.combatLog].reverse().find((m) => !m.isUser);
+    const lastOpponentText = lastOpponent?.text || "";
+    const constraints = `${buildOutputConstraints(selectedStrategy, "player")} ${
+      lastOpponentText ? "Respond directly to the opponent's last argument." : "Respond directly to the topic."
+    }`;
+    const playerResponse = await respondAsAgent({
+      agentId: selectedSpeakerId,
+      taskGoal: state.gameState.topic,
+      messages: state.gameState.combatLog,
+      outputConstraints: constraints,
+    });
+    setIsSpeaking(false);
+    setPreviewText(playerResponse?.response?.text || "");
+    setPreviewLoading(false);
+  };
+
+  const applyTweak = async () => {
+    const state = useAppStore.getState();
+    if (!selectedSpeakerId || !selectedStrategy || !previewText.trim() || !tweakInstruction.trim()) return;
+    if (state.gameState.activeTurn !== "player") return;
+    setPreviewLoading(true);
+    setIsSpeaking(true);
+    setActiveSpeakerId(selectedSpeakerId);
+    const constraints = `${buildOutputConstraints(selectedStrategy, "player")} Revise the draft below using the tweak instructions. Draft: "${previewText}". Tweak: "${tweakInstruction}".`;
+    const playerResponse = await respondAsAgent({
+      agentId: selectedSpeakerId,
+      taskGoal: state.gameState.topic,
+      messages: state.gameState.combatLog,
+      outputConstraints: constraints,
+    });
+    setIsSpeaking(false);
+    setPreviewText(playerResponse?.response?.text || previewText);
+    setPreviewLoading(false);
+  };
+
+  const discardPreview = () => {
+    setPreviewText("");
+    setTweakInstruction("");
+  };
+
+  const sendPreview = async () => {
+    const state = useAppStore.getState();
+    if (!selectedSpeakerId || !selectedStrategy || !previewText) return;
+    if (state.gameState.activeTurn !== "player") return;
+    setIsResolvingTurn(true);
+    const playerAgent = state.gameState.playerTeam.find((a) => a.id === selectedSpeakerId);
+    if (playerAgent) {
+      appendCombatLog({
+        speakerId: playerAgent.id,
+        speakerName: playerAgent.name,
+        speakerInitials: playerAgent.avatarInitials,
+        isUser: true,
+        text: previewText,
+        timestamp: Date.now(),
+      });
+    }
+
+    updateGameState({ activeTurn: "opponent" });
+
+    let opponentText = "";
+    if (state.gameState.roundStarter === "player") {
+      await runOpponentTurn({ userArgument: previewText });
+      const latest = useAppStore.getState().gameState.combatLog;
+      const lastOpponent = [...latest].reverse().find((m) => !m.isUser);
+      opponentText = lastOpponent?.text || "";
+    } else if (pendingOpponentArgument?.text) {
+      opponentText = pendingOpponentArgument.text;
+    }
+
+    if (opponentText) {
+      const verdict = await combatJudgeRound({
+        topic: state.gameState.topic,
+        playerArgument: previewText,
+        opponentArgument: opponentText,
+      });
+
+      const current = useAppStore.getState().gameState;
+      updateGameState({
+        playerScore: current.playerScore + (verdict.playerScore || 0),
+        opponentScore: current.opponentScore + (verdict.opponentScore || 0),
+      });
+      addRoundResult({
+        round: current.currentRound,
+        ...verdict,
+      });
+    }
+
+    setPendingOpponentArgument(null);
+    setPreviewText("");
+    setSelectedStrategy(null);
+    setSelectedSpeakerId(null);
+
+    const currentState = useAppStore.getState().gameState;
+    const nextRound = currentState.currentRound + 1;
+    const totalRounds = currentState.totalRounds;
+    if (totalRounds && nextRound > totalRounds) {
+      updateGameState({ phase: "complete" });
+    } else {
+      updateGameState({
+        currentRound: nextRound,
+        roundStep: 0,
+        activeTurn: currentState.roundStarter,
+      });
+      if (currentState.roundStarter === "opponent") {
+        setTimeout(() => {
+          runOpponentTurn({ userArgument: "" });
+        }, 500);
+      }
+    }
+
+    setIsResolvingTurn(false);
+  };
+
+  const handleEndGame = () => {
+    updateGameState({ phase: "complete" });
+  };
+
+  useEffect(() => {
+    if (gameState.phase !== "combat") return;
+    if (gameState.activeTurn !== "player") return;
+    setSelectedSpeakerId(null);
+    setPreviewText("");
+  }, [gameState.currentRound, gameState.activeTurn, gameState.phase]);
 
   const handleTabChange = (tabId) => {
     setActiveTab(tabId);
@@ -156,6 +422,10 @@ function App() {
           onOpenPersonaEditor={() => setIsPersonaEditorOpen(true)}
           maxSelection={maxMembers}
           onMaxSelectionChange={setMaxMembers}
+          argumentLimit={argumentLimit}
+          onArgumentLimitChange={setArgumentLimit}
+          difficulty={difficulty}
+          onDifficultyChange={setDifficulty}
         />
         <PersonaEditor
           isOpen={isPersonaEditorOpen}
@@ -183,8 +453,17 @@ function App() {
         onSignOut={signOut}
       />
 
-      <div className="flex-1 ml-64 flex flex-col h-full overflow-hidden">
+      <div className="flex-1 ml-64 flex flex-col h-full overflow-hidden relative">
         <ControlBar />
+        <div className="absolute right-6 top-15 z-30">
+          <Button
+            variant="secondary"
+            size="small"
+            onClick={() => setShowRightSidebar((prev) => !prev)}
+          >
+            {showRightSidebar ? "Hide Sidebar" : "Show Sidebar"}
+          </Button>
+        </div>
         <main className="flex-1 overflow-y-auto p-6">
           {activeTab === "history" ? (
             <DiscussionHistory
@@ -207,34 +486,263 @@ function App() {
                   onConfirmDraft={confirmDraft}
                   maxSelection={maxMembers}
                 />
+              ) : gameState.phase === "complete" ? (
+                <div className="max-w-4xl mx-auto bg-white border border-slate-200 rounded-2xl p-8 shadow-sm">
+                  <h2 className="text-2xl font-bold text-slate-900 mb-2">
+                    Debate Results
+                  </h2>
+                  <p className="text-slate-500 mb-6">
+                    Final score: {gameState.playerScore} / {gameState.playerScore + gameState.opponentScore}
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="rounded-xl border border-slate-200 p-4">
+                      <h3 className="text-sm font-mono text-slate-500 mb-2">YOU</h3>
+                      <div className="text-3xl font-bold text-slate-900">{gameState.playerScore}</div>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 p-4">
+                      <h3 className="text-sm font-mono text-slate-500 mb-2">OPPONENT</h3>
+                      <div className="text-3xl font-bold text-slate-400">{gameState.opponentScore}</div>
+                    </div>
+                  </div>
+                  <div className="mt-6">
+                    <h3 className="text-sm font-bold text-slate-700 mb-2">Round Verdicts</h3>
+                    <div className="space-y-3">
+                      {roundResults.map((result) => (
+                        <div key={result.round} className="border border-slate-200 rounded-lg p-3">
+                          <div className="flex items-center justify-between text-xs font-mono text-slate-500 mb-1">
+                            <span>Round {result.round}</span>
+                            <span>{String(result.winner || "tie").toUpperCase()}</span>
+                          </div>
+                          <div className="text-xs text-slate-600 mb-2">
+                            {result.reasoning || "No reasoning provided."}
+                          </div>
+                          <div className="flex gap-3 text-xs font-mono">
+                            <span>Player: {Math.round((result.probabilities?.player || 0) * 100)}%</span>
+                            <span>Opponent: {Math.round((result.probabilities?.opponent || 0) * 100)}%</span>
+                          </div>
+                        </div>
+                      ))}
+                      {roundResults.length === 0 ? (
+                        <div className="text-xs text-slate-400">No rounds completed.</div>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
               ) : (
                 <div className="grid grid-cols-12 gap-6 h-full">
-                  <div className="col-span-9 flex flex-col gap-6">
-                    <Arena
-                      playerTeam={gameState.playerTeam}
-                      opponentTeam={gameState.opponentTeam}
-                      currentRound={{
-                        roundNumber: gameState.currentRound,
-                        topic: gameState.topic,
-                        transcript: [],
-                      }}
-                      isSpeaking={isSpeaking}
-                      activeSpeakerId={activeSpeakerId}
-                    />
+                  <div className={`${showRightSidebar ? "col-span-9" : "col-span-12"} flex flex-col gap-6`}>
+                    <div className={`grid ${showRightSidebar ? "grid-cols-12" : "grid-cols-14"} gap-6`}>
+                      <div className="col-span-2 bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+                        <div className="text-sm font-bold text-slate-700 mb-3">User</div>
+                        <div className="space-y-3">
+                          {gameState.playerTeam.map((agent) => (
+                            <div key={agent.id} className="flex flex-col items-center gap-2">
+                              <div
+                                className={`w-14 h-14 rounded-full border-2 flex items-center justify-center font-mono text-sm font-bold ${
+                                  activeSpeakerId === agent.id ? "border-blue-500 bg-blue-50" : "border-slate-200 bg-white"
+                                }`}
+                              >
+                                {agent.avatarInitials}
+                              </div>
+                              <div className="text-xs text-slate-700 text-center">{agent.name}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className={`${showRightSidebar ? "col-span-8" : "col-span-10"} bg-white border border-slate-200 rounded-2xl p-5 shadow-sm max-h-[60vh] overflow-hidden`}>
+                        <div className="flex items-center justify-between mb-4">
+                          <div>
+                            <div className="text-xs font-mono text-slate-400 uppercase tracking-widest">Topic</div>
+                            <div className="text-lg font-bold text-slate-900">{gameState.topic}</div>
+                          </div>
+                          <div className="text-xs text-slate-500">
+                            Round {gameState.currentRound}
+                            {gameState.totalRounds ? ` / ${gameState.totalRounds}` : " / Infinity"}
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4 mb-3">
+                          <div className="text-xs font-mono text-slate-500">User Response</div>
+                          <div className="text-xs font-mono text-slate-500">Computer Response</div>
+                        </div>
+                        <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-1">
+                          {roundPairs.map((pair, index) => (
+                            <div key={`round-${pair.round}`} className="grid grid-cols-2 gap-4 items-stretch">
+                              <div
+                                ref={(el) => (userRowRefs.current[index] = el)}
+                                className="rounded-lg border border-slate-200 p-4"
+                                style={rowHeights[index] ? { minHeight: `${rowHeights[index]}px` } : undefined}
+                              >
+                                <div className="flex items-center justify-between text-[11px] text-slate-500 mb-2">
+                                  <span>Round {pair.round}</span>
+                                  <span>{pair.player?.speakerName || "-"}</span>
+                                </div>
+                                <div className="text-sm text-slate-700 whitespace-pre-wrap">
+                                  {pair.player?.text || "No response yet."}
+                                </div>
+                              </div>
+                              <div
+                                ref={(el) => (opponentRowRefs.current[index] = el)}
+                                className="rounded-lg border border-slate-200 p-4"
+                                style={rowHeights[index] ? { minHeight: `${rowHeights[index]}px` } : undefined}
+                              >
+                                <div className="flex items-center justify-between text-[11px] text-slate-500 mb-2">
+                                  <span>Round {pair.round}</span>
+                                  <span>{pair.opponent?.speakerName || "-"}</span>
+                                </div>
+                                <div className="text-sm text-slate-700 whitespace-pre-wrap">
+                                  {pair.opponent?.text || "No response yet."}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                          {roundPairs.length === 0 ? (
+                            <div className="text-xs text-slate-400">No responses yet.</div>
+                          ) : null}
+                        </div>
+                      </div>
+
+                      <div className="col-span-2 bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+                        <div className="text-sm font-bold text-slate-700 mb-3">Computer</div>
+                        <div className="space-y-3">
+                          {gameState.opponentTeam.map((agent) => (
+                            <div key={agent.id} className="flex flex-col items-center gap-2">
+                              <div
+                                className={`w-14 h-14 rounded-full border-2 flex items-center justify-center font-mono text-sm font-bold ${
+                                  activeSpeakerId === agent.id ? "border-red-400 bg-red-50" : "border-slate-200 bg-white"
+                                }`}
+                              >
+                                {agent.avatarInitials}
+                              </div>
+                              <div className="text-xs text-slate-700 text-center">{agent.name}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
                     <DirectorChoice
                       options={STRATEGIES}
                       onSelect={handleStrategySelect}
-                      isLoading={isSpeaking}
+                      isLoading={isSpeaking || isResolvingTurn}
+                      previewStrategy={selectedStrategy}
+                      previewText={previewText}
+                      previewLoading={previewLoading}
+                      onGeneratePreview={generatePreview}
+                      onDiscardPreview={discardPreview}
+                      onSendPreview={sendPreview}
                     />
+                    {gameState.phase === "combat" && selectedSpeakerId ? (
+                      <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+                        <h4 className="text-sm font-bold text-slate-700 mb-2">Response Editor</h4>
+                        <textarea
+                          className="w-full min-h-[220px] rounded-md border border-slate-200 p-3 text-sm text-slate-700"
+                          placeholder="Generated response will appear here. You can edit it before sending."
+                          value={previewText}
+                          onChange={(e) => setPreviewText(e.target.value)}
+                        />
+                        <div className="mt-3 flex items-center gap-3">
+                          <input
+                            className="flex-1 h-10 rounded-md border border-slate-200 px-3 text-sm text-slate-700"
+                            placeholder="Tweak instructions (optional)"
+                            value={tweakInstruction}
+                            onChange={(e) => setTweakInstruction(e.target.value)}
+                          />
+                          <Button
+                            variant="secondary"
+                            loading={previewLoading}
+                            onClick={applyTweak}
+                            disabled={!previewText.trim() || !tweakInstruction.trim()}
+                          >
+                            Apply Tweak
+                          </Button>
+                        </div>
+                        <div className="mt-3 text-xs text-slate-400">
+                          Edit the response directly, or use a tweak instruction to revise it.
+                        </div>
+                      </div>
+                    ) : null}
+                    {gameState.phase === "combat" ? (
+                      <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+                        <div className="flex items-center justify-between mb-3">
+                          <div>
+                            <h4 className="text-sm font-bold text-slate-700">Choose Speaker</h4>
+                            <p className="text-xs text-slate-500">
+                              Round {gameState.currentRound}
+                              {gameState.totalRounds ? ` / ${gameState.totalRounds}` : " / Infinity"}
+                            </p>
+                          </div>
+                          <div className="text-xs font-mono text-slate-500">
+                            Turn: {gameState.activeTurn === "player" ? "YOU" : "OPPONENT"}
+                          </div>
+                        </div>
+                        <div className="text-xs text-slate-500 mb-3">
+                          Strategy: <span className="font-medium text-slate-700">{selectedStrategy?.title || "None"}</span>
+                        </div>
+                        <div className="flex flex-wrap gap-3">
+                          {gameState.playerTeam.map((agent) => (
+                            <button
+                              key={agent.id}
+                              type="button"
+                              disabled={isResolvingTurn || gameState.activeTurn !== "player" || !selectedStrategy}
+                              onClick={() => handleSpeakerSelect(agent.id)}
+                              className={`flex items-center gap-2 px-3 py-2 rounded-full border text-sm font-medium transition ${
+                                selectedSpeakerId === agent.id
+                                  ? "border-blue-500 bg-blue-50 text-blue-700"
+                                  : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                              } ${
+                                isResolvingTurn || gameState.activeTurn !== "player" || !selectedStrategy
+                                  ? "opacity-50 cursor-not-allowed"
+                                  : ""
+                              }`}
+                            >
+                              <span className="w-7 h-7 rounded-full bg-slate-900 text-white flex items-center justify-center text-xs font-mono">
+                                {agent.avatarInitials}
+                              </span>
+                              {agent.name}
+                            </button>
+                          ))}
+                        </div>
+                        <div className="mt-4 flex items-center gap-3">
+                          <Button
+                            variant="primary"
+                            onClick={generatePreview}
+                            loading={previewLoading}
+                            disabled={!selectedSpeakerId || !selectedStrategy || previewLoading || isResolvingTurn}
+                          >
+                            Generate Preview
+                          </Button>
+                          {previewLoading ? (
+                            <span className="text-xs text-slate-400">Generating preview…</span>
+                          ) : null}
+                        </div>
+                        {!selectedStrategy ? (
+                          <p className="mt-3 text-xs text-slate-400">
+                            Select a Director's Choice first.
+                          </p>
+                        ) : null}
+                        {gameState.argumentLimit === "infinite" ? (
+                          <div className="mt-4 flex justify-end">
+                            <Button variant="secondary" onClick={handleEndGame}>
+                              End Game
+                            </Button>
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
                   </div>
-                  <div className="col-span-3 space-y-6">
-                    <BiasSlider value={gameState.biasLevel} onChange={setBiasLevel} />
-                    <LiveAnalytics
-                      heatmapData={MOCK_HEATMAP}
-                      playerScore={gameState.playerScore}
-                      opponentScore={gameState.opponentScore}
-                    />
-                  </div>
+                  {showRightSidebar ? (
+                    <div className="col-span-3 space-y-6">
+                      <BiasSlider value={gameState.biasLevel} onChange={setBiasLevel} />
+                      <LiveAnalytics
+                        heatmapData={MOCK_HEATMAP}
+                        playerScore={gameState.playerScore}
+                        opponentScore={gameState.opponentScore}
+                        lastVerdict={lastVerdict}
+                        currentRound={gameState.currentRound}
+                        totalRounds={gameState.totalRounds}
+                      />
+                    </div>
+                  ) : null}
                 </div>
               )}
             </>

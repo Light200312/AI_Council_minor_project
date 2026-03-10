@@ -7,6 +7,7 @@ import authRoutes from "./routes/auth.routes.js";
 import agentRoutes from "./routes/agent.routes.js";
 import messageRoutes from "./routes/message.routes.js";
 import orchestratorRoutes from "./routes/orchestrator.routes.js";
+import combatRoutes from "./routes/combat.routes.js";
 
 dotenv.config();
 
@@ -34,6 +35,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/agents", agentRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/orchestrator", orchestratorRoutes);
+app.use("/api/combat", combatRoutes);
 
 connectDB()
   .then(seedDatabase)
