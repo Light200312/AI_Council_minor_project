@@ -38,6 +38,9 @@ const api = {
   me: (token) => request("/auth/me", { token }),
   listAgents: (token) => request("/agents", { token }),
   createAgent: (payload, token) => request("/agents", { method: "POST", body: payload, token }),
+  updateAgent: (agentId, payload, token) =>
+    request(`/agents/${agentId}`, { method: "PUT", body: payload, token }),
+  deleteAgent: (agentId, token) => request(`/agents/${agentId}`, { method: "DELETE", token }),
   suggestAgents: (payload, token) =>
     request("/agents/suggest", { method: "POST", body: payload, token }),
   findAgentDraft: (payload, token) =>

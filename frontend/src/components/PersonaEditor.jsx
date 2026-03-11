@@ -6,6 +6,10 @@ import { useAppStore } from "../store/useAppStore";
 
 function AgentPreview({ draft, subtitle }) {
   if (!draft) return null;
+  const hasMeta =
+    draft.personalityTraits ||
+    draft.backstoryLore ||
+    draft.speechStyle;
   return (
     <div className="rounded-lg border border-slate-200 bg-white p-4 space-y-2">
       <div className="flex items-start justify-between gap-4">
@@ -22,6 +26,35 @@ function AgentPreview({ draft, subtitle }) {
       </div>
 
       <p className="text-xs text-slate-700 leading-snug">{draft.description}</p>
+
+      {hasMeta ? (
+        <div className="space-y-2 text-xs text-slate-700">
+          {draft.personalityTraits ? (
+            <div>
+              <span className="text-[11px] font-mono text-slate-500 uppercase tracking-wider">
+                Personality Traits
+              </span>
+              <p className="mt-1">{draft.personalityTraits}</p>
+            </div>
+          ) : null}
+          {draft.speechStyle ? (
+            <div>
+              <span className="text-[11px] font-mono text-slate-500 uppercase tracking-wider">
+                Speech Style
+              </span>
+              <p className="mt-1">{draft.speechStyle}</p>
+            </div>
+          ) : null}
+          {draft.backstoryLore ? (
+            <div>
+              <span className="text-[11px] font-mono text-slate-500 uppercase tracking-wider">
+                Backstory
+              </span>
+              <p className="mt-1">{draft.backstoryLore}</p>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
       <div className="grid grid-cols-3 gap-2 text-[11px] font-mono text-slate-600">
         <div className="rounded-md bg-slate-50 border border-slate-200 px-2 py-1">
@@ -43,6 +76,7 @@ function AgentPreview({ draft, subtitle }) {
 // - Finder: draft a persona from a provided name.
 function PersonaEditor({ isOpen, onClose, onCreated }) {
   const topicFromSession = useAppStore((s) => s.gameState.topic);
+  const modeFromSession = useAppStore((s) => s.gameState.mode);
   const suggestAgents = useAppStore((s) => s.suggestAgents);
   const findAgentDraft = useAppStore((s) => s.findAgentDraft);
   const createAgent = useAppStore((s) => s.createAgent);
@@ -81,7 +115,7 @@ function PersonaEditor({ isOpen, onClose, onCreated }) {
     setError("");
     setSuccess("");
     try {
-      const result = await suggestAgents({ topic, maxSuggestions });
+      const result = await suggestAgents({ topic, maxSuggestions, mode: modeFromSession });
       setAnalysis(result.analysis || null);
       setSuggestions(result.suggestions || []);
       if (!result.suggestions?.length) {

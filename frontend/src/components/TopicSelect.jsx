@@ -2,10 +2,12 @@ import { useState } from "react";
 import { ArrowRight, ChevronLeft, PenLine, Info, Check } from "lucide-react";
 import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
-import { TOPICS, DEBATE_TEMPERATURES } from "../data/mockData";
+import { TOPICS, DEBATE_TEMPERATURES, FANTASY_TOPICS } from "../data/mockData";
+import { useAppStore } from "../store/useAppStore";
 
 // TopicSelect configures debate temperature and topic before member selection.
 function TopicSelect({ onSelectTopic, onBack }) {
+  const mode = useAppStore((s) => s.gameState.mode);
   const [customTopic, setCustomTopic] = useState("");
   const [selectedTopic, setSelectedTopic] = useState(null);
   const [selectedTemp, setSelectedTemp] = useState(
@@ -14,6 +16,7 @@ function TopicSelect({ onSelectTopic, onBack }) {
   const [expandedInfo, setExpandedInfo] = useState(
     null
   );
+  const topicOptions = mode === "fantasy" ? FANTASY_TOPICS : TOPICS;
   const activeTopic = selectedTopic || (customTopic.trim() ? customTopic.trim() : null);
   const canContinue = activeTopic && selectedTemp;
   // Continue only when both a topic and temperature are selected.
@@ -36,7 +39,7 @@ function TopicSelect({ onSelectTopic, onBack }) {
 
         <div className="text-center mb-10">
           <h1 className="text-3xl font-bold text-slate-900 mb-2">
-            Configure Your Debate
+            {mode === "fantasy" ? "Configure Your Fantasy Session" : "Configure Your Debate"}
           </h1>
           <p className="text-slate-500 font-mono">
             Set the topic and temperature before entering the council
@@ -141,7 +144,7 @@ function TopicSelect({ onSelectTopic, onBack }) {
               2
             </span>
             <h2 className="text-base font-bold text-slate-900 uppercase tracking-wider">
-              Debate Topic
+              {mode === "fantasy" ? "Universe / Series" : "Debate Topic"}
             </h2>
             {activeTopic && <span className="ml-auto text-xs font-mono text-green-600 flex items-center gap-1">
                 <Check className="w-3 h-3" /> Selected
@@ -162,7 +165,7 @@ function TopicSelect({ onSelectTopic, onBack }) {
               </span>
             </div>
             <Input
-    placeholder="e.g. Is consciousness computable?"
+    placeholder={mode === "fantasy" ? "e.g. The Stormlight Archive" : "e.g. Is consciousness computable?"}
     value={customTopic}
     onChange={(e) => {
       setCustomTopic(e.target.value);
@@ -182,7 +185,7 @@ function TopicSelect({ onSelectTopic, onBack }) {
           <div className="flex items-center gap-4 mb-6">
             <div className="flex-1 h-px bg-slate-200" />
             <span className="text-xs font-mono text-slate-400 uppercase tracking-wider">
-              Or choose a preset
+              {mode === "fantasy" ? "Or choose a universe" : "Or choose a preset"}
             </span>
             <div className="flex-1 h-px bg-slate-200" />
           </div>
@@ -191,7 +194,7 @@ function TopicSelect({ onSelectTopic, onBack }) {
     /* Preset Topics */
   }
           <div className="space-y-3">
-            {TOPICS.map((topic, idx) => {
+            {topicOptions.map((topic, idx) => {
     const isSelected = selectedTopic === topic;
     return <button
       key={idx}

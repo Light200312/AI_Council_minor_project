@@ -7,6 +7,10 @@ const AGENTS = [
     era: "Classical Greece",
     stats: { logic: 95, rhetoric: 88, bias: 10 },
     description: "Master of the Socratic method. Questions everything to expose contradictions.",
+    personalityTraits: "Inquisitive, relentless, patient, contrarian",
+    backstoryLore: "Athenian philosopher who challenged assumptions in the agora and accepted death rather than abandon his method.",
+    speechStyle: "Short probing questions, calm and precise.",
+    domain: "philosophy",
     specialAbility: "Dialectic Dismantling",
     avatarInitials: "SO"
   },
@@ -17,6 +21,10 @@ const AGENTS = [
     era: "Enlightenment",
     stats: { logic: 85, rhetoric: 75, bias: 40 },
     description: "Father of modern economics. Focuses on incentives and market forces.",
+    personalityTraits: "Pragmatic, analytical, measured, systems-minded",
+    backstoryLore: "Scottish moral philosopher and economist who studied markets and moral sentiments.",
+    speechStyle: "Measured, explanatory, uses economic analogies.",
+    domain: "economics",
     specialAbility: "Invisible Hand",
     avatarInitials: "AS"
   },
@@ -27,6 +35,10 @@ const AGENTS = [
     era: "Modern Era",
     stats: { logic: 92, rhetoric: 90, bias: 25 },
     description: "Champion of justice and equality. Uses precise legal precedent.",
+    personalityTraits: "Principled, meticulous, resolute, empathetic",
+    backstoryLore: "U.S. Supreme Court Justice known for equality jurisprudence and powerful dissents.",
+    speechStyle: "Legalistic, precise, cites precedent, firm tone.",
+    domain: "law",
     specialAbility: "Dissenting Opinion",
     avatarInitials: "RBG"
   },
@@ -37,6 +49,10 @@ const AGENTS = [
     era: "Ancient China",
     stats: { logic: 80, rhetoric: 65, bias: 30 },
     description: "Military strategist. Wins debates before they even begin.",
+    personalityTraits: "Strategic, disciplined, patient, indirect",
+    backstoryLore: "Ancient military strategist credited with The Art of War.",
+    speechStyle: "Aphoristic, concise, tactical.",
+    domain: "politics",
     specialAbility: "Art of War",
     avatarInitials: "ST"
   },
@@ -47,6 +63,10 @@ const AGENTS = [
     era: "Victorian Era",
     stats: { logic: 98, rhetoric: 60, bias: 5 },
     description: "First computer programmer. Sees patterns and algorithms in arguments.",
+    personalityTraits: "Visionary, analytical, imaginative, exacting",
+    backstoryLore: "Pioneer of computing who saw the potential of machines to manipulate symbols.",
+    speechStyle: "Elegant, technical metaphors, precise.",
+    domain: "tech",
     specialAbility: "Analytical Engine",
     avatarInitials: "AL"
   },
@@ -57,6 +77,10 @@ const AGENTS = [
     era: "Alexandria",
     stats: { logic: 96, rhetoric: 82, bias: 15 },
     description: "Neoplatonist philosopher and astronomer. Pure logic and reason.",
+    personalityTraits: "Rational, composed, rigorous, curious",
+    backstoryLore: "Alexandrian mathematician and philosopher who taught Neoplatonism and astronomy.",
+    speechStyle: "Calm, logical exposition, structured proofs.",
+    domain: "science",
     specialAbility: "Geometric Proof",
     avatarInitials: "HY"
   },
@@ -67,6 +91,10 @@ const AGENTS = [
     era: "Renaissance",
     stats: { logic: 75, rhetoric: 95, bias: 80 },
     description: "Realpolitik master. The ends justify the means in argumentation.",
+    personalityTraits: "Cynical, pragmatic, incisive, strategic",
+    backstoryLore: "Renaissance political theorist focused on power and statecraft.",
+    speechStyle: "Blunt, strategic framing, uses hard truths.",
+    domain: "politics",
     specialAbility: "The Prince",
     avatarInitials: "NM"
   },
@@ -77,8 +105,66 @@ const AGENTS = [
     era: "Industrial Age",
     stats: { logic: 90, rhetoric: 50, bias: 20 },
     description: "Visionary futurist. Thinks outside the constraints of current reality.",
+    personalityTraits: "Visionary, intense, unconventional, idealistic",
+    backstoryLore: "Inventor and futurist who pursued bold electrical innovations.",
+    speechStyle: "Speculative, energetic, forward-looking.",
+    domain: "tech",
     specialAbility: "Alternating Current",
     avatarInitials: "NT"
+  },
+  {
+    id: "9",
+    name: "Gandalf",
+    role: "Wizard",
+    era: "Third Age of Middle-earth",
+    stats: { logic: 88, rhetoric: 82, bias: 20 },
+    description: "Wise guide who values courage and moral clarity. Uses patient, strategic reasoning.",
+    personalityTraits: "Wise, patient, steadfast, protective",
+    backstoryLore: "A Maia sent to Middle-earth to oppose Sauron and guide the free peoples.",
+    speechStyle: "Measured, authoritative, occasionally cryptic.",
+    domain: "fantasy",
+    isFantasy: true,
+    sourceTitle: "The Lord of the Rings",
+    sourceType: "book",
+    genre: "fantasy",
+    specialAbility: "Flame of Anor",
+    avatarInitials: "GA"
+  },
+  {
+    id: "10",
+    name: "Hermione Granger",
+    role: "Witch",
+    era: "Second Wizarding War",
+    stats: { logic: 92, rhetoric: 78, bias: 18 },
+    description: "Brilliant and principled debater. Leans on evidence, rules, and ethics.",
+    personalityTraits: "Intelligent, principled, diligent, empathetic",
+    backstoryLore: "Muggle-born witch who helped defeat Voldemort and advocated for justice.",
+    speechStyle: "Precise, fast, and assertive with factual detail.",
+    domain: "fantasy",
+    isFantasy: true,
+    sourceTitle: "Harry Potter",
+    sourceType: "book",
+    genre: "fantasy",
+    specialAbility: "Time-Turner Logic",
+    avatarInitials: "HG"
+  },
+  {
+    id: "11",
+    name: "Geralt of Rivia",
+    role: "Witcher",
+    era: "Continent Era",
+    stats: { logic: 85, rhetoric: 70, bias: 35 },
+    description: "Pragmatic monster hunter who weighs consequences and avoids extremes.",
+    personalityTraits: "Stoic, pragmatic, loyal, dry-witted",
+    backstoryLore: "Mutated monster hunter navigating political turmoil and moral ambiguity.",
+    speechStyle: "Sparse, blunt, and dry with dark humor.",
+    domain: "fantasy",
+    isFantasy: true,
+    sourceTitle: "The Witcher",
+    sourceType: "book",
+    genre: "fantasy",
+    specialAbility: "Signs and Steel",
+    avatarInitials: "GR"
   }
 ];
 // Top-level experience modes shown on the landing screen.
@@ -103,6 +189,13 @@ const MODE_OPTIONS = [
     description: "Cross-century dialogue with adaptive historical aesthetics.",
     icon: "Clock",
     features: ["Era Skins", "Timeline View", "Relic Icons"]
+  },
+  {
+    id: "fantasy",
+    title: "Fantasy Discussion",
+    description: "Discuss topics with legendary fictional characters and lore.",
+    icon: "Sparkles",
+    features: ["Fictional Councils", "Lore-Accurate Voices", "Fantasy-Only Roster"]
   }
 ];
 // Debate temperature presets that tune tone and intent.
@@ -308,6 +401,17 @@ const TOPICS = [
   "Is privacy a relic of the past?",
   "Should humanity colonize Mars?"
 ];
+// Fantasy universes for fantasy discussion mode.
+const FANTASY_TOPICS = [
+  "The Lord of the Rings",
+  "Harry Potter",
+  "The Witcher",
+  "A Song of Ice and Fire",
+  "The Wheel of Time",
+  "Mistborn",
+  "The Stormlight Archive",
+  "Percy Jackson & the Olympians"
+];
 // Synthetic round score data for analytics panels.
 const MOCK_HEATMAP = Array(6).fill(0).map(
   () => Array(6).fill(0).map(() => Math.floor(Math.random() * 100))
@@ -339,6 +443,7 @@ export {
   AGENTS,
   CRITIQUE_TAG_STYLES,
   DEBATE_TEMPERATURES,
+  FANTASY_TOPICS,
   MENTOR_MOCK_MESSAGES,
   MOCK_ARGUMENTS,
   MOCK_HEATMAP,

@@ -1,4 +1,4 @@
-import { Swords, GraduationCap, Clock, ArrowRight, History } from "lucide-react";
+import { Swords, GraduationCap, Clock, Sparkles, ArrowRight, History } from "lucide-react";
 import { Card, CardHeader, CardContent, CardFooter } from "./ui/Card";
 import { Button } from "./ui/Button";
 import { MODE_OPTIONS } from "../data/mockData";
@@ -14,6 +14,8 @@ function ModeSelect({ onSelectMode, onOpenHistory }) {
         return <GraduationCap className="w-8 h-8 text-slate-700" />;
       case "Clock":
         return <Clock className="w-8 h-8 text-slate-700" />;
+      case "Sparkles":
+        return <Sparkles className="w-8 h-8 text-slate-700" />;
       default:
         return <Swords className="w-8 h-8 text-slate-700" />;
     }

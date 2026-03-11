@@ -59,13 +59,53 @@ router.get("/:id", authGuard, async (req, res) => {
   }
 });
 
+router.put("/:id", authGuard, async (req, res) => {
+  try {
+    const payload = req.body || {};
+    const updates = {
+      personalityTraits: payload.personalityTraits,
+      backstoryLore: payload.backstoryLore,
+      speechStyle: payload.speechStyle,
+      domain: payload.domain,
+      isFantasy: payload.isFantasy,
+      sourceTitle: payload.sourceTitle,
+      sourceType: payload.sourceType,
+      genre: payload.genre,
+    };
+
+    Object.keys(updates).forEach((key) => {
+      if (updates[key] === undefined) delete updates[key];
+    });
+
+    const agent = await Agent.findOneAndUpdate(
+      { id: req.params.id },
+      { $set: updates },
+      { new: true }
+    ).lean();
+    if (!agent) return res.status(404).json({ message: "Agent not found." });
+    return res.json({ agent });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to update agent.", error: error.message });
+  }
+});
+
+router.delete("/:id", authGuard, async (req, res) => {
+  try {
+    const agent = await Agent.findOneAndDelete({ id: req.params.id }).lean();
+    if (!agent) return res.status(404).json({ message: "Agent not found." });
+    return res.json({ agent });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to delete agent.", error: error.message });
+  }
+});
+
 router.post("/suggest", authGuard, async (req, res) => {
   try {
-    const { topic, maxSuggestions = 6 } = req.body || {};
+    const { topic, maxSuggestions = 6, mode } = req.body || {};
     const createdBy = req.auth?.sub ? req.auth.sub : undefined;
     if (!topic) return res.status(400).json({ message: "topic is required." });
 
-    const result = await suggestAgentsFromTopic({ topic, maxSuggestions, createdBy });
+    const result = await suggestAgentsFromTopic({ topic, maxSuggestions, createdBy, mode });
     return res.json({
       analysis: result.analysis,
       suggestions: result.suggestions,

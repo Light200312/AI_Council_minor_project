@@ -1,8 +1,10 @@
 import { useMemo, useState } from "react";
-import { Check, ChevronLeft, Search } from "lucide-react";
+import { Check, ChevronLeft, Pencil, Search, Trash2 } from "lucide-react";
 import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
 import { AgentCard } from "./AgentCard";
+import { Dialog, DialogContent, DialogFooter, DialogHeader } from "./ui/Dialog";
+import { useAppStore } from "../store/useAppStore";
 
 // MemberSelect filters and selects council members during setup.
 function MemberSelect({
@@ -19,8 +21,23 @@ function MemberSelect({
   difficulty = "standard",
   onDifficultyChange
 }) {
+  const updateAgent = useAppStore((s) => s.updateAgent);
+  const deleteAgent = useAppStore((s) => s.deleteAgent);
+  const mode = useAppStore((s) => s.gameState.mode);
   const [searchQuery, setSearchQuery] = useState("");
   const [domainFilter, setDomainFilter] = useState("all");
+  const [editingAgent, setEditingAgent] = useState(null);
+  const [editDraft, setEditDraft] = useState({
+    personalityTraits: "",
+    backstoryLore: "",
+    speechStyle: "",
+    domain: "",
+    sourceTitle: "",
+    sourceType: "",
+    genre: "",
+  });
+  const [editError, setEditError] = useState("");
+  const [editLoading, setEditLoading] = useState(false);
   const remaining = maxSelection - selectedAgents.length;
   const isComplete = remaining === 0;
   const domainLabel = useMemo(
@@ -33,11 +50,13 @@ function MemberSelect({
       politics: "Politics",
       history: "History",
       science: "Science",
+      fantasy: "Fantasy",
       other: "Other"
     }),
     []
   );
   const inferDomain = (agent) => {
+    if (agent?.domain) return String(agent.domain).toLowerCase();
     const tagText = (agent.tags || []).map((t) => String(t).toLowerCase());
     if (tagText.includes("philosophy")) return "philosophy";
     if (tagText.includes("tech") || tagText.includes("technology")) return "tech";
@@ -59,23 +78,30 @@ function MemberSelect({
     if (roleText.includes("science") || roleText.includes("scientist") || roleText.includes("physician")) return "science";
     return "other";
   };
+  const scopedAgents = useMemo(() => {
+    if (mode === "fantasy") {
+      return availableAgents.filter((agent) => agent.isFantasy);
+    }
+    return availableAgents;
+  }, [availableAgents, mode]);
+
   const availableDomains = useMemo(() => {
     const domainSet = new Set();
-    availableAgents.forEach((agent) => domainSet.add(inferDomain(agent)));
+    scopedAgents.forEach((agent) => domainSet.add(inferDomain(agent)));
     return Array.from(domainSet);
-  }, [availableAgents]);
+  }, [scopedAgents]);
   // Filter experts by searchable profile fields and domain.
   const filteredAgents = useMemo(() => {
     const domainFiltered =
       domainFilter === "all"
-        ? availableAgents
-        : availableAgents.filter((agent) => inferDomain(agent) === domainFilter);
+        ? scopedAgents
+        : scopedAgents.filter((agent) => inferDomain(agent) === domainFilter);
     const q = searchQuery.toLowerCase();
     if (!searchQuery.trim()) return domainFiltered;
     return domainFiltered.filter(
       (agent) => agent.name.toLowerCase().includes(q) || agent.role.toLowerCase().includes(q) || agent.era.toLowerCase().includes(q) || agent.description.toLowerCase().includes(q) || agent.specialAbility.toLowerCase().includes(q)
     );
-  }, [availableAgents, searchQuery, domainFilter]);
+  }, [scopedAgents, searchQuery, domainFilter]);
   const groupedAgents = useMemo(() => {
     const groups = {};
     filteredAgents.forEach((agent) => {
@@ -85,6 +111,65 @@ function MemberSelect({
     });
     return groups;
   }, [filteredAgents]);
+  const openEditor = (agent) => {
+    setEditingAgent(agent);
+    setEditDraft({
+      personalityTraits: agent?.personalityTraits || "",
+      backstoryLore: agent?.backstoryLore || "",
+      speechStyle: agent?.speechStyle || "",
+      domain: agent?.domain || "",
+      sourceTitle: agent?.sourceTitle || "",
+      sourceType: agent?.sourceType || "",
+      genre: agent?.genre || "",
+    });
+    setEditError("");
+  };
+
+  const closeEditor = () => {
+    setEditingAgent(null);
+    setEditDraft({
+      personalityTraits: "",
+      backstoryLore: "",
+      speechStyle: "",
+      domain: "",
+      sourceTitle: "",
+      sourceType: "",
+      genre: "",
+    });
+    setEditError("");
+    setEditLoading(false);
+  };
+
+  const handleSave = async () => {
+    if (!editingAgent) return;
+    setEditLoading(true);
+    setEditError("");
+    try {
+      await updateAgent(editingAgent.id, {
+        personalityTraits: editDraft.personalityTraits?.trim(),
+        backstoryLore: editDraft.backstoryLore?.trim(),
+        speechStyle: editDraft.speechStyle?.trim(),
+        domain: editDraft.domain?.trim(),
+        sourceTitle: editDraft.sourceTitle?.trim(),
+        sourceType: editDraft.sourceType?.trim(),
+        genre: editDraft.genre?.trim(),
+      });
+      closeEditor();
+    } catch (e) {
+      setEditError(e.message || "Update failed.");
+      setEditLoading(false);
+    }
+  };
+
+  const handleDelete = async (agent) => {
+    const confirmed = window.confirm(`Delete ${agent.name}? This cannot be undone.`);
+    if (!confirmed) return;
+    try {
+      await deleteAgent(agent.id);
+    } catch (e) {
+      setEditError(e.message || "Delete failed.");
+    }
+  };
   return <div className="min-h-screen bg-[#f5f5f7] p-8">
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-8">
@@ -224,6 +309,30 @@ function MemberSelect({
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     {items.map((agent) => (
                       <div key={agent.id} className="relative">
+                        <div className="absolute right-2 top-2 z-10 flex gap-2">
+                          <button
+                            type="button"
+                            className="rounded-full bg-white/90 border border-slate-200 p-1.5 text-slate-600 shadow-sm hover:text-slate-900"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openEditor(agent);
+                            }}
+                            title="Edit persona fields"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            className="rounded-full bg-white/90 border border-slate-200 p-1.5 text-slate-600 shadow-sm hover:text-red-600"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(agent);
+                            }}
+                            title="Delete agent"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                         <AgentCard
                           agent={agent}
                           isSelected={selectedAgents.includes(agent.id)}
@@ -280,6 +389,77 @@ function MemberSelect({
           </div>
         </div>
       </div>
+      <Dialog isOpen={!!editingAgent} onClose={closeEditor} size="md">
+        <DialogHeader>Edit Persona Fields</DialogHeader>
+        <DialogContent className="space-y-4">
+          <div>
+            <p className="text-sm font-semibold text-slate-900">{editingAgent?.name}</p>
+            <p className="text-xs text-slate-500">{editingAgent?.role} - {editingAgent?.era}</p>
+          </div>
+          {editError ? (
+            <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              {editError}
+            </div>
+          ) : null}
+          <Input
+            label="Personality traits"
+            placeholder="Comma-separated traits"
+            value={editDraft.personalityTraits}
+            onChange={(e) => setEditDraft((d) => ({ ...d, personalityTraits: e.target.value }))}
+          />
+          <div className="space-y-1">
+            <label className="text-xs font-mono text-slate-500">Backstory / lore</label>
+            <textarea
+              className="w-full min-h-[90px] rounded-md border border-slate-200 p-3 text-sm text-slate-700"
+              placeholder="1-2 sentences of background or lore"
+              value={editDraft.backstoryLore}
+              onChange={(e) => setEditDraft((d) => ({ ...d, backstoryLore: e.target.value }))}
+            />
+          </div>
+          <Input
+            label="Speech style"
+            placeholder="Short voice/tone description"
+            value={editDraft.speechStyle}
+            onChange={(e) => setEditDraft((d) => ({ ...d, speechStyle: e.target.value }))}
+          />
+          <Input
+            label="Domain"
+            placeholder="politics, tech, fantasy, law..."
+            value={editDraft.domain}
+            onChange={(e) => setEditDraft((d) => ({ ...d, domain: e.target.value }))}
+          />
+          {editingAgent?.isFantasy ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <Input
+                label="From (book/series)"
+                placeholder="e.g. The Lord of the Rings"
+                value={editDraft.sourceTitle}
+                onChange={(e) => setEditDraft((d) => ({ ...d, sourceTitle: e.target.value }))}
+              />
+              <Input
+                label="Type"
+                placeholder="webnovel, webseries, movie, tv..."
+                value={editDraft.sourceType}
+                onChange={(e) => setEditDraft((d) => ({ ...d, sourceType: e.target.value }))}
+              />
+              <Input
+                label="Genre"
+                placeholder="fantasy, sci-fi, myth..."
+                value={editDraft.genre}
+                onChange={(e) => setEditDraft((d) => ({ ...d, genre: e.target.value }))}
+              />
+            </div>
+          ) : null}
+        </DialogContent>
+        <DialogFooter>
+          <Button variant="secondary" onClick={closeEditor} disabled={editLoading}>
+            Cancel
+          </Button>
+          <Button onClick={handleSave} loading={editLoading}>
+            Save Changes
+          </Button>
+        </DialogFooter>
+      </Dialog>
     </div>;
 }
 export {

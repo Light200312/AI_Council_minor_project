@@ -474,7 +474,7 @@ function App() {
                 setActiveTab("arena");
               }}
             />
-          ) : gameState.mode === "mentor" || gameState.mode === "historical" ? (
+          ) : gameState.mode === "mentor" || gameState.mode === "historical" || gameState.mode === "fantasy" ? (
             <MentorDashboard topic={gameState.topic} members={gameState.playerTeam} />
           ) : (
             <>

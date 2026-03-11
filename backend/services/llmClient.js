@@ -7,7 +7,9 @@ const OLLAMA_BASE_URL =
 const OLLAMA_ORCHESTRATOR_MODEL = process.env.OLLAMA_MODEL || "qwen2.5:latest";
 const OLLAMA_TIMEOUT_MS = Number(process.env.OLLAMA_TIMEOUT_MS || 60000);
 const ORCHESTRATOR_TIMEOUT_MS = Number(process.env.ORCHESTRATOR_TIMEOUT_MS || 15000);
-const ORCHESTRATOR_PROVIDER = process.env.ORCHESTRATOR_PROVIDER || "";
+const ORCHESTRATOR_PROVIDER =
+  process.env.ORCHESTRATOR_PROVIDER ||
+  (process.env.OPENROUTER_API_KEY ? "openrouter" : "");
 const ORCHESTRATOR_MODEL = process.env.ORCHESTRATOR_MODEL || "";
 
 const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-1.5-flash";

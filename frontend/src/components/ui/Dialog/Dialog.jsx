@@ -46,7 +46,7 @@ const Dialog = ({
   />
 
             </DialogPrimitive.Overlay>
-            <DialogPrimitive.Content asChild>
+            <DialogPrimitive.Content asChild aria-describedby={undefined}>
               <motion.div
     initial={position === "right" ? {
       x: "100%"

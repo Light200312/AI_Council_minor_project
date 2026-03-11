@@ -57,9 +57,10 @@ const useAppStore = create(
         if (!token) return;
         try {
           const [{ user }, { agents }] = await Promise.all([api.me(token), api.listAgents(token)]);
+          const nextAgents = Array.isArray(agents) ? agents : [];
           set({
             user,
-            agents: agents?.length ? agents : FALLBACK_AGENTS,
+            agents: nextAgents,
           });
         } catch (_) {
           get().signOut();
@@ -71,7 +72,7 @@ const useAppStore = create(
         if (!token) return;
         try {
           const { agents } = await api.listAgents(token);
-          set({ agents: agents?.length ? agents : FALLBACK_AGENTS });
+          set({ agents: Array.isArray(agents) ? agents : [] });
         } catch (_) {
           set({ agents: FALLBACK_AGENTS });
         }
@@ -85,10 +86,46 @@ const useAppStore = create(
         return agent;
       },
 
-      suggestAgents: async ({ topic, maxSuggestions } = {}) => {
+      updateAgent: async (agentId, payload) => {
         const token = get().token;
         if (!token) throw new Error("Not authenticated.");
-        return api.suggestAgents({ topic, maxSuggestions }, token);
+        const { agent } = await api.updateAgent(agentId, payload, token);
+        set((state) => {
+          const nextAgents = state.agents.map((a) => (a.id === agent.id ? agent : a));
+          const patchTeam = (team) => team.map((a) => (a.id === agent.id ? agent : a));
+          return {
+            agents: nextAgents,
+            gameState: {
+              ...state.gameState,
+              playerTeam: patchTeam(state.gameState.playerTeam),
+              opponentTeam: patchTeam(state.gameState.opponentTeam),
+            },
+          };
+        });
+        return agent;
+      },
+
+      deleteAgent: async (agentId) => {
+        const token = get().token;
+        if (!token) throw new Error("Not authenticated.");
+        await api.deleteAgent(agentId, token);
+        set((state) => {
+          const nextAgents = state.agents.filter((a) => a.id !== agentId);
+          return {
+            agents: nextAgents,
+            gameState: {
+              ...state.gameState,
+              playerTeam: state.gameState.playerTeam.filter((a) => a.id !== agentId),
+              opponentTeam: state.gameState.opponentTeam.filter((a) => a.id !== agentId),
+            },
+          };
+        });
+      },
+
+      suggestAgents: async ({ topic, maxSuggestions, mode } = {}) => {
+        const token = get().token;
+        if (!token) throw new Error("Not authenticated.");
+        return api.suggestAgents({ topic, maxSuggestions, mode }, token);
       },
 
       findAgentDraft: async ({ name, topic } = {}) => {

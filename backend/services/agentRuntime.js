@@ -24,7 +24,17 @@ async function runAgentStep({
   const agent = await Agent.findOne({ id: agentId }).lean();
   if (!agent) throw new Error(`Agent not found: ${agentId}`);
 
-  const system = `You are ${agent.name}, role: ${agent.role}.\nPersona and reasoning method:\n${agent.description}\nStay within this persona and constraints.`;
+  const personaLines = [
+    `Persona and reasoning method: ${agent.description}`,
+    agent.personalityTraits ? `Personality traits: ${agent.personalityTraits}` : null,
+    agent.backstoryLore ? `Backstory/lore: ${agent.backstoryLore}` : null,
+    agent.speechStyle ? `Speech style: ${agent.speechStyle}` : null,
+    agent.isFantasy
+      ? `Source: ${agent.sourceTitle || "Unknown"} (${agent.sourceType || "Unknown"}, ${agent.genre || "Unknown"})`
+      : null,
+  ].filter(Boolean);
+
+  const system = `You are ${agent.name}, role: ${agent.role}.\n${personaLines.join("\n")}\nStay within this persona and constraints.`;
   const prompt = buildAgentPrompt({
     agent,
     taskGoal,
