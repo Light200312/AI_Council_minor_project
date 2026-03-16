@@ -15,6 +15,9 @@ router.post("/run", authGuard, async (req, res) => {
       metaMemory = null,
       apiRoutingMode = "persona",
       orchestratorMode = "fast",
+      memoryMode = "minimal",
+      topic = "",
+      sessionId = "",
     } = req.body || {};
 
     if (!taskGoal) return res.status(400).json({ message: "taskGoal is required." });
@@ -28,6 +31,9 @@ router.post("/run", authGuard, async (req, res) => {
       metaMemory,
       apiRoutingMode,
       orchestratorMode,
+      memoryMode,
+      topic,
+      sessionId,
     });
 
     return res.json(result);

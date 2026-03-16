@@ -134,7 +134,15 @@ router.post("/find", authGuard, async (req, res) => {
 
 router.post("/:id/respond", authGuard, async (req, res) => {
   try {
-    const { taskGoal, messages = [], outputConstraints, apiRoutingMode = "persona" } = req.body || {};
+    const {
+      taskGoal,
+      messages = [],
+      outputConstraints,
+      apiRoutingMode = "persona",
+      memoryMode = "minimal",
+      topic = "",
+      sessionId = "",
+    } = req.body || {};
     if (!taskGoal) return res.status(400).json({ message: "taskGoal is required." });
 
     const response = await runAgentStep({
@@ -143,6 +151,9 @@ router.post("/:id/respond", authGuard, async (req, res) => {
       messages,
       outputConstraints,
       apiRoutingMode,
+      memoryMode,
+      topic,
+      sessionId,
     });
 
     return res.json({ response });

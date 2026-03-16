@@ -45,6 +45,24 @@ function resolveOrchestratorMode(orchestratorMode) {
   return orchestratorMode === "dynamic" ? "dynamic" : "fast";
 }
 
+function resolveConversationScope({ taskGoal, topic, sessionId, messages }) {
+  let resolvedTopic = String(topic || "").trim();
+  let resolvedSessionId = String(sessionId || "").trim();
+
+  if (!resolvedTopic) {
+    const lastWithTopic = [...messages].reverse().find((m) => String(m?.topic || "").trim());
+    if (lastWithTopic) resolvedTopic = String(lastWithTopic.topic || "").trim();
+  }
+  if (!resolvedTopic) resolvedTopic = String(taskGoal || "").trim();
+
+  if (!resolvedSessionId) {
+    const lastWithSession = [...messages].reverse().find((m) => String(m?.sessionId || "").trim());
+    if (lastWithSession) resolvedSessionId = String(lastWithSession.sessionId || "").trim();
+  }
+
+  return { topic: resolvedTopic, sessionId: resolvedSessionId };
+}
+
 async function selectNextAgent({
   taskGoal,
   messages,
@@ -95,6 +113,9 @@ async function orchestrateTask({
   metaMemory = null, // retained for API compatibility
   apiRoutingMode = "persona",
   orchestratorMode = "fast",
+  memoryMode = "minimal",
+  topic = "",
+  sessionId = "",
 }) {
   const agentsQuery = selectedAgentIds.length ? { id: { $in: selectedAgentIds } } : {};
   const candidates = await Agent.find(agentsQuery).lean();
@@ -107,6 +128,7 @@ async function orchestrateTask({
   const trace = [];
   const lastSpeakerId = getLastSpeakingAgentId(messages, candidates);
   const mode = resolveOrchestratorMode(orchestratorMode);
+  const scope = resolveConversationScope({ taskGoal, topic, sessionId, messages });
 
   if (!hasOrchestratorOpening(messages)) {
     messages.push(
@@ -148,6 +170,9 @@ async function orchestrateTask({
       outputConstraints:
         "Teach the user directly. Evaluate the user's last point, correct mistakes clearly, praise valid reasoning, and give one concrete improvement step. Keep it concise.",
       apiRoutingMode,
+      memoryMode,
+      topic: scope.topic,
+      sessionId: scope.sessionId,
     });
   } catch (_) {
     agentMessage = {

@@ -41,6 +41,7 @@ const useAppStore = create(
       user: null,
       apiRoutingMode: "openrouter_only",
       orchestratorMode: "fast",
+      memoryMode: "minimal",
       agents: FALLBACK_AGENTS,
       messages: [],
       discussionHistory: [],
@@ -170,6 +171,7 @@ const useAppStore = create(
           user: null,
           apiRoutingMode: "openrouter_only",
           orchestratorMode: "fast",
+          memoryMode: "minimal",
           gameState: initialGameState(),
           messages: [],
           discussionHistory: [],
@@ -304,6 +306,9 @@ const useAppStore = create(
               metaMemory: { summary: "" },
               apiRoutingMode: get().apiRoutingMode,
               orchestratorMode: get().orchestratorMode,
+              memoryMode: get().memoryMode,
+              topic: gameState.topic,
+              sessionId: gameState.sessionId,
             },
             token
           );
@@ -508,6 +513,7 @@ const useAppStore = create(
 
       setApiRoutingMode: (apiRoutingMode) => set({ apiRoutingMode }),
       setOrchestratorMode: (orchestratorMode) => set({ orchestratorMode }),
+      setMemoryMode: (memoryMode) => set({ memoryMode }),
 
       resetSession: () =>
         set({
@@ -525,6 +531,7 @@ const useAppStore = create(
         user: state.user,
         apiRoutingMode: state.apiRoutingMode,
         orchestratorMode: state.orchestratorMode,
+        memoryMode: state.memoryMode,
         gameState: state.gameState,
         discussionHistory: state.discussionHistory,
         messages: state.messages,

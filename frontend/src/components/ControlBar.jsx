@@ -8,6 +8,8 @@ function ControlBar() {
   const setApiRoutingMode = useAppStore((state) => state.setApiRoutingMode);
   const orchestratorMode = useAppStore((state) => state.orchestratorMode);
   const setOrchestratorMode = useAppStore((state) => state.setOrchestratorMode);
+  const memoryMode = useAppStore((state) => state.memoryMode);
+  const setMemoryMode = useAppStore((state) => state.setMemoryMode);
   const apiModes = [
     { id: "persona", label: "Per Personality" },
     { id: "ollama_only", label: "Ollama Only" },
@@ -16,6 +18,10 @@ function ControlBar() {
   const orchestrationModes = [
     { id: "dynamic", label: "Dynamic" },
     { id: "fast", label: "Fast" },
+  ];
+  const memoryModes = [
+    { id: "minimal", label: "Memory: Minimal" },
+    { id: "rich", label: "Memory: Rich" },
   ];
 
   return <div className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 sticky top-0 z-20">
@@ -59,6 +65,25 @@ function ControlBar() {
                 onClick={() => setOrchestratorMode(mode.id)}
                 className={`rounded px-2 py-1 text-[11px] font-medium transition-colors ${
                   orchestratorMode === mode.id
+                    ? "bg-slate-900 text-white"
+                    : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-100"
+                }`}
+              >
+                {mode.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-2 py-1">
+          <span className="text-xs font-medium text-slate-700">Context:</span>
+          <div className="flex items-center gap-1">
+            {memoryModes.map((mode) => (
+              <button
+                key={mode.id}
+                type="button"
+                onClick={() => setMemoryMode(mode.id)}
+                className={`rounded px-2 py-1 text-[11px] font-medium transition-colors ${
+                  memoryMode === mode.id
                     ? "bg-slate-900 text-white"
                     : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-100"
                 }`}

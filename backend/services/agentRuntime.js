@@ -1,13 +1,7 @@
 import Agent from "../models/agent.js";
 import { callAgentLLM } from "./llmClient.js";
 import { resolveAgentModelConfig } from "./agentModelRegistry.js";
-
-function summarizeHistory(messages = [], limit = 8) {
-  return messages
-    .slice(-limit)
-    .map((m) => `${m.speakerName}: ${m.text}`)
-    .join("\n");
-}
+import { buildContextSummary } from "./memoryService.js";
 
 function buildAgentPrompt({ agent, taskGoal, contextSummary, outputConstraints }) {
   return `Task goal:\n${taskGoal}\n\nContext:\n${contextSummary || "No prior context."}\n\nOutput constraints:\n${outputConstraints || "Be concise, actionable, and role-consistent."}\n\nDeliver your contribution now.`;
@@ -20,6 +14,9 @@ async function runAgentStep({
   outputConstraints,
   temperature = 0.5,
   apiRoutingMode = "persona",
+  memoryMode = "minimal",
+  topic = "",
+  sessionId = "",
 }) {
   const agent = await Agent.findOne({ id: agentId }).lean();
   if (!agent) throw new Error(`Agent not found: ${agentId}`);
@@ -35,12 +32,14 @@ async function runAgentStep({
   ].filter(Boolean);
 
   const system = `You are ${agent.name}, role: ${agent.role}.\n${personaLines.join("\n")}\nStay within this persona and constraints.`;
-  const prompt = buildAgentPrompt({
-    agent,
+  const { contextSummary } = await buildContextSummary({
     taskGoal,
-    contextSummary: summarizeHistory(messages),
-    outputConstraints,
+    topic,
+    sessionId,
+    messages,
+    memoryMode,
   });
+  const prompt = buildAgentPrompt({ agent, taskGoal, contextSummary, outputConstraints });
 
   const modelConfig = resolveAgentModelConfig(agent.id, apiRoutingMode);
   const text = await callAgentLLM({
