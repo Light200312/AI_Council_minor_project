@@ -32,6 +32,7 @@ router.post("/register", async (req, res) => {
       user: { id: user._id, username: user.username, email: user.email },
     });
   } catch (error) {
+    console.error("Auth register failed:", error);
     return res.status(500).json({ message: "Registration failed.", error: error.message });
   }
 });
@@ -57,6 +58,7 @@ router.post("/login", async (req, res) => {
       user: { id: user._id, username: user.username, email: user.email },
     });
   } catch (error) {
+    console.error("Auth login failed:", error);
     return res.status(500).json({ message: "Login failed.", error: error.message });
   }
 });
@@ -67,9 +69,9 @@ router.get("/me", authGuard, async (req, res) => {
     if (!user) return res.status(404).json({ message: "User not found." });
     return res.json({ user });
   } catch (error) {
+    console.error("Auth me failed:", error);
     return res.status(500).json({ message: "Could not fetch profile.", error: error.message });
   }
 });
 
 export default router;
-

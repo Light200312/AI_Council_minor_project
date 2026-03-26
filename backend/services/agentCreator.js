@@ -207,6 +207,7 @@ async function suggestAgentsFromTopic({
   try {
     text = await callOrchestratorLLM({ system: `[${providerHint}] ${system}`, prompt, temperature: 0.3 });
   } catch (error) {
+    console.error('Agent suggestion LLM call failed:', error);
     const fallbackQuery = mode === "fantasy" ? { isFantasy: true } : {};
     const fallbackAgents = await Agent.find(fallbackQuery).limit(safeMax).lean();
     if (fallbackAgents.length) {
@@ -404,3 +405,4 @@ export {
   computeInitials,
   generateAgentId,
 };
+

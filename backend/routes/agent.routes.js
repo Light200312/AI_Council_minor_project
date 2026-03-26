@@ -11,6 +11,7 @@ router.get("/", authGuard, async (_req, res) => {
     const agents = await Agent.find({}).sort({ id: 1 }).lean();
     return res.json({ agents });
   } catch (error) {
+    console.error("Agent list failed:", error);
     return res.status(500).json({ message: "Failed to fetch agents.", error: error.message });
   }
 });
@@ -45,6 +46,7 @@ router.post("/", authGuard, async (req, res) => {
     const agent = await Agent.create(draft);
     return res.status(201).json({ agent });
   } catch (error) {
+    console.error("Agent create failed:", error);
     return res.status(500).json({ message: "Failed to create agent.", error: error.message });
   }
 });
@@ -55,6 +57,7 @@ router.get("/:id", authGuard, async (req, res) => {
     if (!agent) return res.status(404).json({ message: "Agent not found." });
     return res.json({ agent });
   } catch (error) {
+    console.error("Agent fetch failed:", error);
     return res.status(500).json({ message: "Failed to fetch agent.", error: error.message });
   }
 });
@@ -85,6 +88,7 @@ router.put("/:id", authGuard, async (req, res) => {
     if (!agent) return res.status(404).json({ message: "Agent not found." });
     return res.json({ agent });
   } catch (error) {
+    console.error("Agent update failed:", error);
     return res.status(500).json({ message: "Failed to update agent.", error: error.message });
   }
 });
@@ -95,6 +99,7 @@ router.delete("/:id", authGuard, async (req, res) => {
     if (!agent) return res.status(404).json({ message: "Agent not found." });
     return res.json({ agent });
   } catch (error) {
+    console.error("Agent delete failed:", error);
     return res.status(500).json({ message: "Failed to delete agent.", error: error.message });
   }
 });
@@ -111,6 +116,7 @@ router.post("/suggest", authGuard, async (req, res) => {
       suggestions: result.suggestions,
     });
   } catch (error) {
+    console.error("Agent suggest failed:", error);
     return res.status(500).json({ message: "Failed to generate suggestions.", error: error.message });
   }
 });
@@ -128,6 +134,7 @@ router.post("/find", authGuard, async (req, res) => {
       notes: result.notes || "",
     });
   } catch (error) {
+    console.error("Agent find failed:", error);
     return res.status(500).json({ message: "Failed to find character.", error: error.message });
   }
 });
@@ -158,6 +165,7 @@ router.post("/:id/respond", authGuard, async (req, res) => {
 
     return res.json({ response });
   } catch (error) {
+    console.error("Agent respond failed:", error);
     return res.status(500).json({ message: "Agent response failed.", error: error.message });
   }
 });

@@ -7,15 +7,13 @@ const OLLAMA_BASE_URL =
 const OLLAMA_ORCHESTRATOR_MODEL = process.env.OLLAMA_MODEL || "qwen2.5:latest";
 const OLLAMA_TIMEOUT_MS = Number(process.env.OLLAMA_TIMEOUT_MS || 60000);
 const ORCHESTRATOR_TIMEOUT_MS = Number(process.env.ORCHESTRATOR_TIMEOUT_MS || 15000);
-const ORCHESTRATOR_PROVIDER =
-  process.env.ORCHESTRATOR_PROVIDER ||
-  (process.env.OPENROUTER_API_KEY ? "openrouter" : "");
+const ORCHESTRATOR_PROVIDER = (process.env.OPENROUTER_API_KEY ? "openrouter" : "") ||   process.env.ORCHESTRATOR_PROVIDER ;
 const ORCHESTRATOR_MODEL = process.env.ORCHESTRATOR_MODEL || "";
 
 const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-1.5-flash";
 const CLAUDE_MODEL = process.env.CLAUDE_MODEL || "claude-3-5-sonnet-latest";
 const DEEPSEEK_MODEL = process.env.DEEPSEEK_MODEL || "deepseek-chat";
-const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || "openai/gpt-4o-mini";
+const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || "google/gemini-2.0-flash-001";
 const LLM_TIMEOUT_MS = Number(process.env.LLM_TIMEOUT_MS || 90000);
 
 async function callOllama({
@@ -157,6 +155,7 @@ async function callAgentLLM({ provider, model, system, prompt, temperature = 0.4
         return callOllama({ system, prompt, model, temperature });
     }
   } catch (_) {
+    console.error('Agent LLM call failed, falling back to Ollama:', { provider, model });
     try {
       return await callOllama({
         system,
@@ -165,6 +164,7 @@ async function callAgentLLM({ provider, model, system, prompt, temperature = 0.4
         temperature,
       });
     } catch (_) {
+      console.error('Agent LLM fallback (Ollama) failed.');
       return "I could not reach the model right now. Please continue and I will respond on the next turn.";
     }
   }
@@ -233,6 +233,7 @@ async function callOrchestratorLLM({ system, prompt, temperature = 0.4 }) {
           });
       }
     } catch (error) {
+      console.error('Orchestrator LLM call failed:', { provider, message: error?.message });
       errors.push(error);
     }
   }
@@ -250,3 +251,7 @@ export {
   callOpenRouter,
   OLLAMA_ORCHESTRATOR_MODEL,
 };
+
+
+
+
