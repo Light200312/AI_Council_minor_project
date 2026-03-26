@@ -1,3 +1,4 @@
+// Backend entry point: sets up the API, connects MongoDB, and starts the server.
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
@@ -11,10 +12,12 @@ import combatRoutes from "./routes/combat.routes.js";
 
 dotenv.config();
 
+// Express app configuration + environment defaults.
 const app = express();
 const port = process.env.PORT || 3000;
 const origin = process.env.FRONTEND_ORIGIN || "http://localhost:5173";
 
+// CORS + JSON body parsing for API requests.
 app.use(
   cors({
     origin,
@@ -23,6 +26,7 @@ app.use(
 );
 app.use(express.json());
 
+// Basic health endpoints for quick checks.
 app.get("/", (_req, res) => {
   res.send("AI Council backend is running.");
 });
@@ -31,12 +35,14 @@ app.get("/api/health", (_req, res) => {
   res.json({ ok: true, timestamp: new Date().toISOString() });
 });
 
+// API route groups.
 app.use("/api/auth", authRoutes);
 app.use("/api/agents", agentRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/orchestrator", orchestratorRoutes);
 app.use("/api/combat", combatRoutes);
 
+// Connect DB, seed default data, then start listening.
 connectDB()
   .then(seedDatabase)
   .then(() => {

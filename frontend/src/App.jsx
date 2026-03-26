@@ -1,3 +1,5 @@
+// Main application shell for the AI Council experience:
+// handles authentication, setup flow, and the live debate arena.
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Sidebar } from "./components/Sidebar";
 import { ControlBar } from "./components/ControlBar";
@@ -18,6 +20,7 @@ import { STRATEGIES, MOCK_HEATMAP } from "./data/mockData";
 import { useAppStore } from "./store/useAppStore";
 
 function App() {
+  // Global app state + actions from the central store.
   const token = useAppStore((state) => state.token);
   const agents = useAppStore((state) => state.agents);
   const gameState = useAppStore((state) => state.gameState);
@@ -53,6 +56,7 @@ function App() {
   const lastVerdict = useAppStore((state) => state.gameState.lastVerdict);
   const roundResults = useAppStore((state) => state.gameState.roundResults);
 
+  // Local UI state for tabs, drawers, editor, and combat UX.
   const [activeTab, setActiveTab] = useState("arena");
   const [isPersonaEditorOpen, setIsPersonaEditorOpen] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -72,10 +76,12 @@ function App() {
   const [rowHeights, setRowHeights] = useState([]);
   const [showSetupHistory, setShowSetupHistory] = useState(false);
 
+  // Bootstrap persisted session on first load.
   useEffect(() => {
     bootstrapSession();
   }, [bootstrapSession]);
 
+  // Pair user/opponent messages into rounds for the combat log display.
   const roundPairs = useMemo(() => {
     const pairs = [];
     let current = { round: 1, player: null, opponent: null };
@@ -98,6 +104,7 @@ function App() {
     return pairs;
   }, [gameState.combatLog]);
 
+  // Keep left/right message cards aligned to the same height per round.
   useLayoutEffect(() => {
     const heights = roundPairs.map((_, index) => {
       const left = userRowRefs.current[index];
@@ -111,6 +118,7 @@ function App() {
 
 
 
+  // Demo helper to flash the "speaking" state for a speaker.
   const simulateTurn = (speakerId) => {
     setActiveSpeakerId(speakerId);
     setIsSpeaking(true);
@@ -120,6 +128,7 @@ function App() {
     }, 3000);
   };
 
+  // Transition from coin toss into the first combat round.
   const handleCoinTossComplete = (winner) => {
     setCombatStarted();
     updateGameState({
@@ -136,6 +145,7 @@ function App() {
     }
   };
 
+  // Build prompt constraints to guide model responses for a given role/strategy.
   const buildOutputConstraints = (strategy, role = "player") => {
     const base = `Stay in character. Respond to the debate topic directly. Keep it concise but strong.`;
     const strategyLine =
@@ -146,6 +156,7 @@ function App() {
     return `${base} ${strategyLine} ${roleLine}`;
   };
 
+  // Resolve the opponent turn: pick agent + strategy, generate response, log it.
   const runOpponentTurn = async ({ userArgument }) => {
     const state = useAppStore.getState();
     if (state.gameState.activeTurn !== "opponent") return;
@@ -197,11 +208,13 @@ function App() {
     setIsResolvingTurn(false);
   };
 
+  // Choose a strategy for the user's next response.
   const handleStrategySelect = (strategy) => {
     setSelectedStrategy(strategy);
     setPreviewText("");
   };
 
+  // Select which player agent speaks for the current round.
   const handleSpeakerSelect = (agentId) => {
     if (gameState.phase !== "combat") return;
     if (gameState.activeTurn !== "player") return;
@@ -210,6 +223,7 @@ function App() {
     setPreviewText("");
   };
 
+  // Ask the model for a draft response for the selected agent.
   const generatePreview = async () => {
     const state = useAppStore.getState();
     if (!selectedSpeakerId || !selectedStrategy) return;
@@ -233,6 +247,7 @@ function App() {
     setPreviewLoading(false);
   };
 
+  // Apply a tweak instruction to the current draft.
   const applyTweak = async () => {
     const state = useAppStore.getState();
     if (!selectedSpeakerId || !selectedStrategy || !previewText.trim() || !tweakInstruction.trim()) return;
@@ -252,11 +267,13 @@ function App() {
     setPreviewLoading(false);
   };
 
+  // Clear draft and tweak inputs.
   const discardPreview = () => {
     setPreviewText("");
     setTweakInstruction("");
   };
 
+  // Send the draft to the combat log and advance the round.
   const sendPreview = async () => {
     const state = useAppStore.getState();
     if (!selectedSpeakerId || !selectedStrategy || !previewText) return;
@@ -330,10 +347,12 @@ function App() {
     setIsResolvingTurn(false);
   };
 
+  // Force the combat to finish (infinite rounds mode).
   const handleEndGame = () => {
     updateGameState({ phase: "complete" });
   };
 
+  // Reset draft selection when the round or turn changes.
   useEffect(() => {
     if (gameState.phase !== "combat") return;
     if (gameState.activeTurn !== "player") return;
@@ -341,6 +360,7 @@ function App() {
     setPreviewText("");
   }, [gameState.currentRound, gameState.activeTurn, gameState.phase]);
 
+  // Switch left sidebar tab and optionally load history.
   const handleTabChange = (tabId) => {
     setActiveTab(tabId);
     if (tabId === "history") {
@@ -348,10 +368,12 @@ function App() {
     }
   };
 
+  // Auth gate: show sign-in when no token exists.
   if (!token) {
     return <AuthPage onAuthenticate={authenticate} />;
   }
 
+  // Setup flow: pick mode, topic, and roster before entering combat.
   if (gameState.setupPhase === "modeSelect") {
     if (showSetupHistory) {
       return (
@@ -440,6 +462,7 @@ function App() {
     );
   }
 
+  // Main arena layout (sidebar + content area).
   return (
     <div className="flex h-screen w-full bg-[#f5f5f7] text-[#1f2933] font-sans overflow-hidden">
       <Sidebar
@@ -478,6 +501,7 @@ function App() {
             <MentorDashboard topic={gameState.topic} members={gameState.playerTeam} />
           ) : (
             <>
+              {/* Drafting, results, and live combat views */}
               {gameState.phase === "draft" ? (
                 <DraftBoard
                   availableAgents={agents}
@@ -620,6 +644,7 @@ function App() {
                         </div>
                       </div>
                     </div>
+                    {/* Strategy selection + preview workflow */}
                     <DirectorChoice
                       options={STRATEGIES}
                       onSelect={handleStrategySelect}
@@ -631,6 +656,7 @@ function App() {
                       onDiscardPreview={discardPreview}
                       onSendPreview={sendPreview}
                     />
+                    {/* Draft editor appears once a speaker is chosen */}
                     {gameState.phase === "combat" && selectedSpeakerId ? (
                       <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
                         <h4 className="text-sm font-bold text-slate-700 mb-2">Response Editor</h4>
@@ -661,6 +687,7 @@ function App() {
                         </div>
                       </div>
                     ) : null}
+                    {/* Speaker selection / round controls */}
                     {gameState.phase === "combat" ? (
                       <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
                         <div className="flex items-center justify-between mb-3">
@@ -730,6 +757,7 @@ function App() {
                       </div>
                     ) : null}
                   </div>
+                  {/* Optional right sidebar for bias + analytics */}
                   {showRightSidebar ? (
                     <div className="col-span-3 space-y-6">
                       <BiasSlider value={gameState.biasLevel} onChange={setBiasLevel} />

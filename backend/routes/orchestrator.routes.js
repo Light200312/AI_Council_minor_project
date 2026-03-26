@@ -38,6 +38,7 @@ router.post("/run", authGuard, async (req, res) => {
 
     return res.json(result);
   } catch (error) {
+    console.error("Orchestrator run failed:", error);
     return res.status(500).json({ message: "Orchestrator failed.", error: error.message });
   }
 });

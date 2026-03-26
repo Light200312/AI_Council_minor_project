@@ -14,6 +14,7 @@ router.get("/", authGuard, async (req, res) => {
     const messages = await Message.find(filter).sort({ timestamp: 1 }).lean();
     return res.json({ messages });
   } catch (error) {
+    console.error("Message list failed:", error);
     return res.status(500).json({ message: "Failed to fetch messages.", error: error.message });
   }
 });
@@ -42,6 +43,7 @@ router.post("/", authGuard, async (req, res) => {
 
     return res.status(201).json({ message: created });
   } catch (error) {
+    console.error("Message create failed:", error);
     return res.status(500).json({ message: "Failed to save message.", error: error.message });
   }
 });
