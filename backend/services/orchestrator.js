@@ -10,6 +10,11 @@ function formatMessages(messages = [], limit = 12) {
     .join("\n");
 }
 
+function truncateText(text = "", maxChars = 140) {
+  const safe = String(text || "").trim();
+  return safe.length > maxChars ? `${safe.slice(0, maxChars - 1)}...` : safe;
+}
+
 function makeOrchestratorMessage(text) {
   return {
     id: `m-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -63,6 +68,102 @@ function getRecentSpeakerIds(messages, candidates, limit = candidates.length) {
   return recentSpeakerIds;
 }
 
+function buildParticipationStats(messages, candidates) {
+  const candidateIds = new Set(candidates.map((c) => String(c.id)));
+  const orderedMessages = [...messages].sort((a, b) => Number(a?.timestamp || 0) - Number(b?.timestamp || 0));
+  const stats = new Map(
+    candidates.map((candidate) => [
+      String(candidate.id),
+      {
+        turnsTaken: 0,
+        lastSpokeTimestamp: 0,
+        lastSpokeTurnIndex: -1,
+      },
+    ])
+  );
+
+  let speakingTurnIndex = 0;
+  orderedMessages.forEach((message) => {
+    const speakerId = String(message?.speakerId || "");
+    if (!candidateIds.has(speakerId)) return;
+    const entry = stats.get(speakerId);
+    if (!entry) return;
+    entry.turnsTaken += 1;
+    entry.lastSpokeTimestamp = Number(message?.timestamp || 0);
+    entry.lastSpokeTurnIndex = speakingTurnIndex;
+    speakingTurnIndex += 1;
+  });
+
+  return {
+    stats,
+    totalAgentTurns: speakingTurnIndex,
+  };
+}
+
+function buildCandidateProfile(candidate, participationStats, totalAgentTurns) {
+  const agentId = String(candidate.id);
+  const stats = participationStats.get(agentId) || {
+    turnsTaken: 0,
+    lastSpokeTimestamp: 0,
+    lastSpokeTurnIndex: -1,
+  };
+  const turnsSinceLastSpeak =
+    stats.lastSpokeTurnIndex < 0 ? "never" : String(Math.max(0, totalAgentTurns - stats.lastSpokeTurnIndex - 1));
+
+  return {
+    id: agentId,
+    name: String(candidate.name || ""),
+    role: String(candidate.role || ""),
+    domain: String(candidate.domain || "other"),
+    specialization: truncateText(
+      candidate.specialAbility || candidate.description || candidate.personalityTraits || candidate.role,
+      100
+    ),
+    turnsTaken: stats.turnsTaken,
+    turnsSinceLastSpeak,
+    hasSpokenYet: stats.turnsTaken > 0,
+  };
+}
+
+function buildCandidateProfiles(candidates, messages) {
+  const { stats, totalAgentTurns } = buildParticipationStats(messages, candidates);
+  return candidates.map((candidate) => buildCandidateProfile(candidate, stats, totalAgentTurns));
+}
+
+function formatCandidateProfiles(candidateProfiles = []) {
+  return candidateProfiles
+    .map(
+      (candidate) =>
+        `- id: ${candidate.id} | ${candidate.name} | ${candidate.role} | domain: ${candidate.domain} | strengths: ${candidate.specialization} | turnsTaken: ${candidate.turnsTaken} | turnsSinceLastSpeak: ${candidate.turnsSinceLastSpeak}`
+    )
+    .join("\n");
+}
+
+function getSoftEligibleCandidates(candidateProfiles, lastSpeakerId = "") {
+  const lastSpeaker = String(lastSpeakerId || "");
+  const nonRepeatingProfiles = candidateProfiles.filter((candidate) => candidate.id !== lastSpeaker);
+  const pool = nonRepeatingProfiles.length ? nonRepeatingProfiles : candidateProfiles;
+  const unspokenProfiles = pool.filter((candidate) => !candidate.hasSpokenYet);
+  if (unspokenProfiles.length >= 2) return unspokenProfiles;
+
+  const turnCounts = pool.map((candidate) => candidate.turnsTaken);
+  const minTurns = Math.min(...turnCounts);
+  const maxTurns = Math.max(...turnCounts);
+  if (maxTurns - minTurns >= 2) {
+    return pool.filter((candidate) => candidate.turnsTaken === minTurns);
+  }
+
+  return pool;
+}
+
+function shouldOverrideForFairness(selectedProfile, eligibleProfiles = []) {
+  if (!selectedProfile || !eligibleProfiles.length) return false;
+  if (eligibleProfiles.some((candidate) => candidate.id === selectedProfile.id)) return false;
+
+  const minTurns = Math.min(...eligibleProfiles.map((candidate) => candidate.turnsTaken));
+  return selectedProfile.turnsTaken - minTurns >= 2;
+}
+
 function pickNextByRotation(candidates, lastSpeakerId = "", excludeIds = []) {
   if (!candidates.length) return null;
   const normalizedLast = String(lastSpeakerId || "");
@@ -81,9 +182,15 @@ function pickNextByRotation(candidates, lastSpeakerId = "", excludeIds = []) {
 }
 
 function pickFairFallbackCandidate({ candidates, messages, lastSpeakerId = "" }) {
-  const recentSpeakerIds = getRecentSpeakerIds(messages, candidates);
-  const unseenCandidates = candidates.filter((candidate) => !recentSpeakerIds.includes(String(candidate.id)));
-  const candidatePool = unseenCandidates.length ? unseenCandidates : candidates;
+  const candidateProfiles = buildCandidateProfiles(candidates, messages);
+  const eligibleIds = new Set(getSoftEligibleCandidates(candidateProfiles, lastSpeakerId).map((candidate) => candidate.id));
+  const preferredCandidates = candidates.filter((candidate) => eligibleIds.has(String(candidate.id)));
+  const recentSpeakerIds = getRecentSpeakerIds(messages, preferredCandidates.length ? preferredCandidates : candidates);
+  const candidatePoolSource = preferredCandidates.length ? preferredCandidates : candidates;
+  const unseenCandidates = candidatePoolSource.filter(
+    (candidate) => !recentSpeakerIds.includes(String(candidate.id))
+  );
+  const candidatePool = unseenCandidates.length ? unseenCandidates : candidatePoolSource;
   return pickNextByRotation(candidatePool, lastSpeakerId);
 }
 
@@ -115,14 +222,20 @@ async function selectNextAgent({
   candidates,
   lastSpeakerId = "",
 }) {
+  const candidateProfiles = buildCandidateProfiles(candidates, messages);
   const recentSpeakerIds = getRecentSpeakerIds(messages, candidates, Math.min(3, candidates.length));
+  const eligibleProfiles = getSoftEligibleCandidates(candidateProfiles, lastSpeakerId);
   const system = "You are an orchestration policy controller for a teaching council.";
-  const prompt = `Select the next agent id from this list: ${candidates
-    .map((c) => c.id)
-    .join(", ")}.
+  const prompt = `Select the next agent id from the eligible set below.
 
 Topic:
 ${taskGoal}
+
+Eligible candidates:
+${formatCandidateProfiles(eligibleProfiles) || "none"}
+
+All candidates:
+${formatCandidateProfiles(candidateProfiles) || "none"}
 
 Recent conversation:
 ${formatMessages(messages, 6) || "none"}
@@ -132,9 +245,11 @@ Recent speaker ids: ${recentSpeakerIds.join(", ") || "none"}
 
 Rules:
 - choose ONE next speaker only
-- avoid selecting the same speaker as the last turn unless necessary
-- prefer members who have spoken less recently when several are relevant
-- rotate perspectives to teach the user across the whole council, not just two people
+- optimize first for relevance to the current discussion and user need
+- maintain continuity, but do not overfit to the same small subset of agents
+- avoid selecting the same speaker as the last turn unless there is no strong alternative
+- if multiple candidates are similarly relevant, prefer an underused candidate
+- do NOT perform strict round-robin rotation
 - return strict JSON: {"agentId":"<id>","reason":"<short reason>"}
 `;
 
@@ -143,13 +258,15 @@ Rules:
     const parsed = JSON.parse(raw);
     const selectedAgentId = String(parsed.agentId || "");
     const isValidCandidate = candidates.some((c) => String(c.id) === selectedAgentId);
+    const selectedProfile = candidateProfiles.find((candidate) => candidate.id === selectedAgentId);
     const isImmediateRepeat =
       selectedAgentId &&
       lastSpeakerId &&
       selectedAgentId === String(lastSpeakerId) &&
       candidates.length > 1;
+    const fairnessOverride = shouldOverrideForFairness(selectedProfile, eligibleProfiles);
 
-    if (isValidCandidate && !isImmediateRepeat) {
+    if (isValidCandidate && !isImmediateRepeat && !fairnessOverride) {
       return {
         agentId: selectedAgentId,
         reason: String(parsed.reason || "Selected for relevance."),
@@ -187,6 +304,7 @@ async function orchestrateTask({
   const lastSpeakerId = getLastSpeakingAgentId(messages, candidates);
   const mode = resolveOrchestratorMode(orchestratorMode);
   const scope = resolveConversationScope({ taskGoal, topic, sessionId, messages });
+  const candidateProfiles = buildCandidateProfiles(candidates, messages);
 
   if (!hasOrchestratorOpening(messages)) {
     messages.push(
@@ -273,6 +391,7 @@ async function orchestrateTask({
     selectedAgentModel: resolveAgentModelConfig(selected.id, apiRoutingMode),
     selectionReason: nextAgent.reason,
     confidence: 0.7,
+    candidateProfiles,
     suggestion: `One agent turn completed using ${mode} orchestrator mode. Awaiting user input for the next turn.`,
   });
 

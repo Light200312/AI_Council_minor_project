@@ -88,6 +88,7 @@ const useAppStore = create(
       isLoadingReply: false,
       followupQuestion: "",
       suggestion: "",
+      theme: "light",
       gameState: initialGameState(),
 
       bootstrapSession: async () => {
@@ -585,12 +586,18 @@ const useAppStore = create(
           followupQuestion: "",
           suggestion: "",
         }),
+
+      toggleTheme: () =>
+        set((state) => ({
+          theme: state.theme === "light" ? "dark" : "light",
+        })),
     }),
     {
       name: "ai-council-store",
       partialize: (state) => ({
         token: state.token,
         user: state.user,
+        theme: state.theme,
         apiRoutingMode: state.apiRoutingMode,
         orchestratorMode: state.orchestratorMode,
         memoryMode: state.memoryMode,
