@@ -16,6 +16,23 @@ const DEEPSEEK_MODEL = process.env.DEEPSEEK_MODEL || "deepseek-chat";
 const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || "google/gemini-2.0-flash-001";
 const LLM_TIMEOUT_MS = Number(process.env.LLM_TIMEOUT_MS || 90000);
 
+function getProviderPriority(preferredProvider) {
+  const providers = [];
+  const pushProvider = (provider, enabled = true) => {
+    if (!enabled || providers.includes(provider)) return;
+    providers.push(provider);
+  };
+
+  pushProvider(preferredProvider, Boolean(preferredProvider));
+  pushProvider("openrouter", Boolean(process.env.OPENROUTER_API_KEY));
+  pushProvider("gemini", Boolean(process.env.GEMINI_API_KEY));
+  pushProvider("claude", Boolean(process.env.CLAUDE_API_KEY));
+  pushProvider("deepseek", Boolean(process.env.DEEPSEEK_API_KEY || process.env.DEEPSEARCH_API_KEY));
+  pushProvider("ollama");
+
+  return providers;
+}
+
 async function callOllama({
   system,
   prompt,
@@ -140,57 +157,66 @@ async function callOpenRouter({ system, prompt, model = OPENROUTER_MODEL, temper
 }
 
 async function callAgentLLM({ provider, model, system, prompt, temperature = 0.4 }) {
-  try {
-    switch (provider) {
-      case "gemini":
-        return callGemini({ system, prompt, model, temperature });
-      case "claude":
-        return callClaude({ system, prompt, model, temperature });
-      case "deepseek":
-        return callDeepSeek({ system, prompt, model, temperature });
-      case "openrouter":
-        return callOpenRouter({ system, prompt, model, temperature });
-      case "ollama":
-      default:
-        return callOllama({ system, prompt, model, temperature });
-    }
-  } catch (_) {
-    console.error('Agent LLM call failed, falling back to Ollama:', { provider, model });
+  const providerCandidates = getProviderPriority(provider);
+  const requestedModel = model || process.env.OPENROUTER_MODEL || OPENROUTER_MODEL;
+
+  for (const providerCandidate of providerCandidates) {
     try {
-      return await callOllama({
-        system,
-        prompt,
-        model: process.env.OLLAMA_AGENT_MODEL || process.env.OLLAMA_MODEL || "qwen2.5:latest",
-        temperature,
+      switch (providerCandidate) {
+        case "gemini":
+          return await callGemini({
+            system,
+            prompt,
+            model: provider === "gemini" ? requestedModel : GEMINI_MODEL,
+            temperature,
+          });
+        case "claude":
+          return await callClaude({
+            system,
+            prompt,
+            model: provider === "claude" ? requestedModel : CLAUDE_MODEL,
+            temperature,
+          });
+        case "deepseek":
+          return await callDeepSeek({
+            system,
+            prompt,
+            model: provider === "deepseek" ? requestedModel : DEEPSEEK_MODEL,
+            temperature,
+          });
+        case "openrouter":
+          return await callOpenRouter({
+            system,
+            prompt,
+            model: provider === "openrouter" ? requestedModel : OPENROUTER_MODEL,
+            temperature,
+          });
+        case "ollama":
+        default:
+          return await callOllama({
+            system,
+            prompt,
+            model:
+              provider === "ollama"
+                ? requestedModel
+                : process.env.OLLAMA_AGENT_MODEL || process.env.OLLAMA_MODEL || OLLAMA_ORCHESTRATOR_MODEL,
+            temperature,
+          });
+      }
+    } catch (error) {
+      console.error("Agent LLM call failed:", {
+        provider: providerCandidate,
+        model: providerCandidate === provider ? requestedModel : undefined,
+        message: error?.message,
       });
-    } catch (_) {
-      console.error('Agent LLM fallback (Ollama) failed.');
-      return "I could not reach the model right now. Please continue and I will respond on the next turn.";
     }
   }
+
+  return "I could not reach the model right now. Please continue and I will respond on the next turn.";
 }
 
 async function callOrchestratorLLM({ system, prompt, temperature = 0.4 }) {
-  const providerCandidates = [];
-  if (ORCHESTRATOR_PROVIDER) providerCandidates.push(ORCHESTRATOR_PROVIDER);
-  if (!providerCandidates.includes("ollama")) providerCandidates.push("ollama");
-  if (!providerCandidates.includes("openrouter") && process.env.OPENROUTER_API_KEY) {
-    providerCandidates.push("openrouter");
-  }
-  if (!providerCandidates.includes("gemini") && process.env.GEMINI_API_KEY) {
-    providerCandidates.push("gemini");
-  }
-  if (!providerCandidates.includes("claude") && process.env.CLAUDE_API_KEY) {
-    providerCandidates.push("claude");
-  }
-  if (
-    !providerCandidates.includes("deepseek") &&
-    (process.env.DEEPSEEK_API_KEY || process.env.DEEPSEARCH_API_KEY)
-  ) {
-    providerCandidates.push("deepseek");
-  }
-
-  const errors = [];
+  const providerCandidates = getProviderPriority(ORCHESTRATOR_PROVIDER || "openrouter");
   for (const provider of providerCandidates) {
     try {
       switch (provider) {
@@ -234,7 +260,6 @@ async function callOrchestratorLLM({ system, prompt, temperature = 0.4 }) {
       }
     } catch (error) {
       console.error('Orchestrator LLM call failed:', { provider, message: error?.message });
-      errors.push(error);
     }
   }
 
@@ -251,7 +276,5 @@ export {
   callOpenRouter,
   OLLAMA_ORCHESTRATOR_MODEL,
 };
-
-
 
 

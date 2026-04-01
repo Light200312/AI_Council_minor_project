@@ -9,13 +9,22 @@ const AGENT_MODEL_MAP = {
   "8": { provider: "ollama", model: process.env.OLLAMA_AGENT_MODEL || process.env.OLLAMA_MODEL || "qwen2.5:latest" },
 };
 
+function getPreferredApiConfig() {
+  if (process.env.OPENROUTER_API_KEY) {
+    return {
+      provider: "openrouter",
+      model: process.env.OPENROUTER_MODEL || "google/gemini-2.0-flash-001",
+    };
+  }
+
+  return {
+    provider: "ollama",
+    model: process.env.OLLAMA_AGENT_MODEL || process.env.OLLAMA_MODEL || "qwen2.5:latest",
+  };
+}
+
 function getAgentModelConfig(agentId) {
-  return (
-    AGENT_MODEL_MAP[String(agentId)] || {
-      provider: "ollama",
-      model: process.env.OLLAMA_AGENT_MODEL || process.env.OLLAMA_MODEL || "qwen2.5:latest",
-    }
-  );
+  return AGENT_MODEL_MAP[String(agentId)] || getPreferredApiConfig();
 }
 
 function resolveAgentModelConfig(agentId, apiRoutingMode = "persona") {
@@ -28,7 +37,13 @@ function resolveAgentModelConfig(agentId, apiRoutingMode = "persona") {
   if (apiRoutingMode === "openrouter_only") {
     return {
       provider: "openrouter",
-      model: process.env.OPENROUTER_MODEL || "openai/gpt-4o-mini",
+      model: process.env.OPENROUTER_MODEL || "google/gemini-2.0-flash-001",
+    };
+  }
+  if (process.env.OPENROUTER_API_KEY) {
+    return {
+      provider: "openrouter",
+      model: process.env.OPENROUTER_MODEL || "google/gemini-2.0-flash-001",
     };
   }
   return getAgentModelConfig(agentId);
