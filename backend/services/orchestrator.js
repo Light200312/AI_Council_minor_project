@@ -35,10 +35,56 @@ function hasOrchestratorOpening(messages = []) {
   return messages.some((m) => String(m.speakerId || "") === "orchestrator");
 }
 
-function pickNextByRotation(candidates, lastSpeakerId = "") {
+function sortCandidatesBySelectionOrder(candidates, selectedAgentIds = []) {
+  if (!selectedAgentIds.length) return candidates;
+
+  const orderMap = new Map(selectedAgentIds.map((id, index) => [String(id), index]));
+  return [...candidates].sort((a, b) => {
+    const aOrder = orderMap.get(String(a.id));
+    const bOrder = orderMap.get(String(b.id));
+    if (aOrder == null && bOrder == null) return 0;
+    if (aOrder == null) return 1;
+    if (bOrder == null) return -1;
+    return aOrder - bOrder;
+  });
+}
+
+function getRecentSpeakerIds(messages, candidates, limit = candidates.length) {
+  const candidateIds = new Set(candidates.map((c) => String(c.id)));
+  const recentSpeakerIds = [];
+
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    const speakerId = String(messages[i]?.speakerId || "");
+    if (!candidateIds.has(speakerId) || recentSpeakerIds.includes(speakerId)) continue;
+    recentSpeakerIds.push(speakerId);
+    if (recentSpeakerIds.length >= limit) break;
+  }
+
+  return recentSpeakerIds;
+}
+
+function pickNextByRotation(candidates, lastSpeakerId = "", excludeIds = []) {
+  if (!candidates.length) return null;
   const normalizedLast = String(lastSpeakerId || "");
-  const next = candidates.find((c) => String(c.id) !== normalizedLast);
-  return next || candidates[0];
+  const excluded = new Set(excludeIds.map((id) => String(id)));
+  const startIndex = Math.max(
+    candidates.findIndex((c) => String(c.id) === normalizedLast),
+    -1
+  );
+
+  for (let offset = 1; offset <= candidates.length; offset += 1) {
+    const candidate = candidates[(startIndex + offset) % candidates.length];
+    if (!excluded.has(String(candidate.id))) return candidate;
+  }
+
+  return candidates[(startIndex + 1 + candidates.length) % candidates.length] || candidates[0];
+}
+
+function pickFairFallbackCandidate({ candidates, messages, lastSpeakerId = "" }) {
+  const recentSpeakerIds = getRecentSpeakerIds(messages, candidates);
+  const unseenCandidates = candidates.filter((candidate) => !recentSpeakerIds.includes(String(candidate.id)));
+  const candidatePool = unseenCandidates.length ? unseenCandidates : candidates;
+  return pickNextByRotation(candidatePool, lastSpeakerId);
 }
 
 function resolveOrchestratorMode(orchestratorMode) {
@@ -69,6 +115,7 @@ async function selectNextAgent({
   candidates,
   lastSpeakerId = "",
 }) {
+  const recentSpeakerIds = getRecentSpeakerIds(messages, candidates, Math.min(3, candidates.length));
   const system = "You are an orchestration policy controller for a teaching council.";
   const prompt = `Select the next agent id from this list: ${candidates
     .map((c) => c.id)
@@ -81,26 +128,36 @@ Recent conversation:
 ${formatMessages(messages, 6) || "none"}
 
 Last speaking agent id: ${lastSpeakerId || "none"}
+Recent speaker ids: ${recentSpeakerIds.join(", ") || "none"}
 
 Rules:
 - choose ONE next speaker only
 - avoid selecting the same speaker as the last turn unless necessary
-- rotate perspectives to teach the user
+- prefer members who have spoken less recently when several are relevant
+- rotate perspectives to teach the user across the whole council, not just two people
 - return strict JSON: {"agentId":"<id>","reason":"<short reason>"}
 `;
 
   const raw = await callOrchestratorLLM({ system, prompt, temperature: 0.2 });
   try {
     const parsed = JSON.parse(raw);
-    if (parsed.agentId && candidates.some((c) => String(c.id) === String(parsed.agentId))) {
+    const selectedAgentId = String(parsed.agentId || "");
+    const isValidCandidate = candidates.some((c) => String(c.id) === selectedAgentId);
+    const isImmediateRepeat =
+      selectedAgentId &&
+      lastSpeakerId &&
+      selectedAgentId === String(lastSpeakerId) &&
+      candidates.length > 1;
+
+    if (isValidCandidate && !isImmediateRepeat) {
       return {
-        agentId: String(parsed.agentId),
+        agentId: selectedAgentId,
         reason: String(parsed.reason || "Selected for relevance."),
       };
     }
   } catch (_) {}
 
-  const fallback = pickNextByRotation(candidates, lastSpeakerId);
+  const fallback = pickFairFallbackCandidate({ candidates, messages, lastSpeakerId });
   return { agentId: String(fallback.id), reason: "Fallback rotation to keep turns moving." };
 }
 
@@ -118,7 +175,8 @@ async function orchestrateTask({
   sessionId = "",
 }) {
   const agentsQuery = selectedAgentIds.length ? { id: { $in: selectedAgentIds } } : {};
-  const candidates = await Agent.find(agentsQuery).lean();
+  const fetchedCandidates = await Agent.find(agentsQuery).lean();
+  const candidates = sortCandidatesBySelectionOrder(fetchedCandidates, selectedAgentIds);
 
   if (!taskGoal) throw new Error("Task goal is required.");
   if (!candidates.length) throw new Error("No agents available for orchestration.");
@@ -200,7 +258,7 @@ async function orchestrateTask({
     });
     upcomingAgent =
       candidates.find((c) => String(c.id) === String(upcoming.agentId)) ||
-      pickNextByRotation(candidates, String(selected.id));
+      pickFairFallbackCandidate({ candidates, messages, lastSpeakerId: String(selected.id) });
     upcomingReason = upcoming.reason || "Dynamic selection.";
   } else {
     upcomingAgent = pickNextByRotation(candidates, String(selected.id));

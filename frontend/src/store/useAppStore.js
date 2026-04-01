@@ -34,6 +34,43 @@ function initialGameState() {
   };
 }
 
+function reconcileTeam(team = [], agents = []) {
+  const agentMap = new Map((agents || []).map((agent) => [String(agent.id), agent]));
+  return (team || [])
+    .map((member) => agentMap.get(String(member?.id || "")))
+    .filter(Boolean);
+}
+
+function deriveMembersFromMessages(messages = [], agents = []) {
+  const participantSnapshot = [...messages]
+    .reverse()
+    .find((message) => Array.isArray(message?.sessionParticipants) && message.sessionParticipants.length)
+    ?.sessionParticipants;
+  if (participantSnapshot?.length) {
+    return participantSnapshot.map((participant) => ({
+      id: String(participant.id),
+      name: String(participant.name || ""),
+      role: String(participant.role || ""),
+      avatarInitials: String(participant.avatarInitials || ""),
+    }));
+  }
+
+  const agentMap = new Map((agents || []).map((agent) => [String(agent.id), agent]));
+  const seen = new Set();
+  const members = [];
+
+  (messages || []).forEach((message) => {
+    const speakerId = String(message?.speakerId || "");
+    if (!speakerId || speakerId === "user" || speakerId === "orchestrator" || seen.has(speakerId)) return;
+    const agent = agentMap.get(speakerId);
+    if (!agent) return;
+    seen.add(speakerId);
+    members.push(agent);
+  });
+
+  return members;
+}
+
 const useAppStore = create(
   persist(
     (set, get) => ({
@@ -59,10 +96,15 @@ const useAppStore = create(
         try {
           const [{ user }, { agents }] = await Promise.all([api.me(token), api.listAgents(token)]);
           const nextAgents = Array.isArray(agents) ? agents : [];
-          set({
+          set((state) => ({
             user,
             agents: nextAgents,
-          });
+            gameState: {
+              ...state.gameState,
+              playerTeam: reconcileTeam(state.gameState.playerTeam, nextAgents),
+              opponentTeam: reconcileTeam(state.gameState.opponentTeam, nextAgents),
+            },
+          }));
         } catch (_) {
           get().signOut();
         }
@@ -73,7 +115,15 @@ const useAppStore = create(
         if (!token) return;
         try {
           const { agents } = await api.listAgents(token);
-          set({ agents: Array.isArray(agents) ? agents : [] });
+          const nextAgents = Array.isArray(agents) ? agents : [];
+          set((state) => ({
+            agents: nextAgents,
+            gameState: {
+              ...state.gameState,
+              playerTeam: reconcileTeam(state.gameState.playerTeam, nextAgents),
+              opponentTeam: reconcileTeam(state.gameState.opponentTeam, nextAgents),
+            },
+          }));
         } catch (_) {
           set({ agents: FALLBACK_AGENTS });
         }
@@ -249,6 +299,7 @@ const useAppStore = create(
             setupPhase: "ready",
             topic: entry.topic,
             sessionId: entry.sessionId,
+            playerTeam: deriveMembersFromMessages(entry.messages || [], state.agents),
           },
           messages: entry.messages || [],
           followupQuestion: "",
@@ -259,10 +310,19 @@ const useAppStore = create(
         const token = get().token;
         const { gameState, messages } = get();
         if (!token || !text.trim() || !gameState.topic || !gameState.sessionId) return;
+        const sessionParticipants = gameState.playerTeam.map((member) => ({
+          id: member.id,
+          name: member.name,
+          role: member.role,
+          avatarInitials: member.avatarInitials,
+        }));
+        const sessionParticipantIds = sessionParticipants.map((member) => member.id);
 
         const userMessage = {
           sessionId: gameState.sessionId,
           topic: gameState.topic,
+          sessionParticipantIds,
+          sessionParticipants,
           speakerId: "user",
           speakerName: "You",
           speakerInitials: "ME",
@@ -333,6 +393,8 @@ const useAppStore = create(
                 {
                   sessionId: gameState.sessionId,
                   topic: gameState.topic,
+                  sessionParticipantIds,
+                  sessionParticipants,
                   speakerId: m.speakerId,
                   speakerName: m.speakerName,
                   speakerInitials: m.speakerInitials,

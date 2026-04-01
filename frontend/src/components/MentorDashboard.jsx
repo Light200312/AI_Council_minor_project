@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Send } from "lucide-react";
+import { Send, Volume2, Square } from "lucide-react";
 import { Button } from "./ui/Button";
 import { Input } from "./ui/Input";
 import { Card } from "./ui/Card";
@@ -7,6 +7,14 @@ import { KnowledgeGrowth } from "./KnowledgeGrowth";
 import { AppreciationMeter } from "./AppreciationMeter";
 import { CRITIQUE_TAG_STYLES } from "../data/mockData";
 import { useAppStore } from "../store/useAppStore";
+
+function pickPreferredVoice(voices = []) {
+  return (
+    voices.find((voice) => /en/i.test(voice.lang) && /google|natural|zira|david|samantha/i.test(voice.name)) ||
+    voices.find((voice) => /en/i.test(voice.lang)) ||
+    null
+  );
+}
 
 function MentorDashboard({ topic, members }) {
   const messages = useAppStore((state) => state.messages);
@@ -21,7 +29,10 @@ function MentorDashboard({ topic, members }) {
   const sendMentorMessage = useAppStore((state) => state.sendMentorMessage);
 
   const [inputValue, setInputValue] = useState("");
+  const [speakingMessageId, setSpeakingMessageId] = useState("");
+  const [speechReady, setSpeechReady] = useState(false);
   const messagesEndRef = useRef(null);
+  const availableVoicesRef = useRef([]);
 
   useEffect(() => {
     if (token) loadMessages();
@@ -31,11 +42,81 @@ function MentorDashboard({ topic, members }) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isLoadingReply]);
 
+  useEffect(
+    () => () => {
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+    },
+    []
+  );
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return undefined;
+
+    const synth = window.speechSynthesis;
+    const updateVoices = () => {
+      const voices = synth.getVoices();
+      availableVoicesRef.current = voices;
+      setSpeechReady(voices.length > 0);
+    };
+
+    updateVoices();
+    synth.onvoiceschanged = updateVoices;
+
+    const warmupTimer = window.setTimeout(updateVoices, 250);
+    return () => {
+      window.clearTimeout(warmupTimer);
+      if (synth.onvoiceschanged === updateVoices) synth.onvoiceschanged = null;
+    };
+  }, []);
+
   const handleSendMessage = async () => {
     if (!inputValue.trim()) return;
     const text = inputValue;
     setInputValue("");
     await sendMentorMessage(text);
+  };
+
+  const handleSpeakMessage = (msg) => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+
+    const synth = window.speechSynthesis;
+    if (speakingMessageId === msg.id) {
+      synth.cancel();
+      setSpeakingMessageId("");
+      return;
+    }
+
+    synth.cancel();
+    const utterance = new SpeechSynthesisUtterance(String(msg.text || ""));
+    utterance.lang = "en-US";
+    utterance.rate = msg.isUser ? 1 : 0.96;
+    utterance.pitch = msg.isUser ? 1 : msg.speakerId === "orchestrator" ? 0.92 : 1.02;
+    utterance.volume = 1;
+
+    const voices = availableVoicesRef.current.length ? availableVoicesRef.current : synth.getVoices();
+    const preferredVoice = pickPreferredVoice(voices);
+    if (preferredVoice) utterance.voice = preferredVoice;
+
+    utterance.onend = () => setSpeakingMessageId("");
+    utterance.onerror = () => setSpeakingMessageId("");
+
+    setSpeakingMessageId(msg.id);
+
+    if (!voices.length) {
+      window.setTimeout(() => {
+        const retryVoices = synth.getVoices();
+        const retryVoice = pickPreferredVoice(retryVoices);
+        if (retryVoice) utterance.voice = retryVoice;
+        synth.speak(utterance);
+        synth.resume();
+      }, 150);
+      return;
+    }
+
+    synth.speak(utterance);
+    synth.resume();
   };
 
   return (
@@ -81,6 +162,26 @@ function MentorDashboard({ topic, members }) {
                     >
                       {msg.text}
                     </div>
+                    <div className={`flex ${msg.isUser ? "justify-end" : "justify-start"}`}>
+                      <button
+                        type="button"
+                        onClick={() => handleSpeakMessage(msg)}
+                        disabled={typeof window === "undefined" ? true : !("speechSynthesis" in window)}
+                        className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {speakingMessageId === msg.id ? (
+                          <>
+                            <Square className="h-3 w-3" />
+                            Stop
+                          </>
+                        ) : (
+                          <>
+                            <Volume2 className="h-3 w-3" />
+                            Speak
+                          </>
+                        )}
+                      </button>
+                    </div>
                     {msg.critiqueTags?.length ? (
                       <div className="flex flex-wrap gap-2 mt-1">
                         {msg.critiqueTags.map((tag) => (
@@ -115,6 +216,11 @@ function MentorDashboard({ topic, members }) {
             {suggestion ? (
               <p className="text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded-md px-3 py-2">
                 Improvement suggestion: {suggestion}
+              </p>
+            ) : null}
+            {!speechReady && typeof window !== "undefined" && "speechSynthesis" in window ? (
+              <p className="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-md px-3 py-2">
+                Voice engine is still loading. In Brave, audio may start after a short delay on first use.
               </p>
             ) : null}
 
