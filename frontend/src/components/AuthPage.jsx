@@ -41,10 +41,10 @@ function AuthPage({ onAuthenticate }) {
   };
 
   return (
-    <div className="min-h-screen bg-[#f5f5f7] flex items-center justify-center p-6">
-      <div className="w-full max-w-md bg-white border border-slate-200 rounded-2xl p-8 shadow-sm">
-        <h1 className="text-2xl font-bold text-slate-900 mb-1">AI Council</h1>
-        <p className="text-sm text-slate-500 mb-6">
+    <div className="min-h-screen bg-slate-100 dark:bg-slate-900 flex items-center justify-center p-6">
+      <div className="w-full max-w-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-8 shadow-sm">
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-1">AI Council</h1>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
           {isRegister ? "Create account" : "Sign in"} to start your session.
         </p>
 
@@ -70,14 +70,14 @@ function AuthPage({ onAuthenticate }) {
           />
         </div>
 
-        {error ? <p className="text-red-600 text-sm mt-3">{error}</p> : null}
+        {error ? <p className="text-red-600 dark:text-red-400 text-sm mt-3">{error}</p> : null}
 
         <Button className="w-full mt-5" onClick={submit} loading={loading}>
           {isRegister ? "Register" : "Login"}
         </Button>
 
         <button
-          className="mt-4 text-sm text-slate-600 hover:text-slate-900"
+          className="mt-4 text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
           onClick={() => {
             setMode(isRegister ? "login" : "register");
             setError("");

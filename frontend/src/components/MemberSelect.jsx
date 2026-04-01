@@ -170,7 +170,7 @@ function MemberSelect({
       setEditError(e.message || "Delete failed.");
     }
   };
-  return <div className="min-h-screen bg-[#f5f5f7] p-8">
+  return <div className="min-h-screen bg-slate-100 dark:bg-slate-900 p-8 text-slate-900 dark:text-slate-100">
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <Button
@@ -183,10 +183,10 @@ function MemberSelect({
           </Button>
 
           <div className="text-right">
-            <h1 className="text-2xl font-bold text-slate-900">
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
               Select Council Members
             </h1>
-            <p className="text-slate-500 font-mono">
+            <p className="text-slate-500 dark:text-slate-400 font-mono">
               {remaining > 0 ? `Select ${remaining} more members` : "Selection Complete"}
             </p>
           </div>
@@ -203,9 +203,9 @@ function MemberSelect({
           </div>
           <div className="flex items-end gap-3">
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-mono text-slate-500">Council size</label>
+              <label className="text-xs font-mono text-slate-500 dark:text-slate-400">Council size</label>
               <select
-                className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700"
+                className="h-10 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 text-sm text-slate-700 dark:text-slate-200"
                 value={maxSelection}
                 onChange={(e) => onMaxSelectionChange?.(e.target.value)}
               >
@@ -217,9 +217,9 @@ function MemberSelect({
               </select>
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-mono text-slate-500">Arguments</label>
+              <label className="text-xs font-mono text-slate-500 dark:text-slate-400">Arguments</label>
               <select
-                className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700"
+                className="h-10 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 text-sm text-slate-700 dark:text-slate-200"
                 value={argumentLimit}
                 onChange={(e) => onArgumentLimitChange?.(e.target.value)}
               >
@@ -229,9 +229,9 @@ function MemberSelect({
               </select>
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-mono text-slate-500">Difficulty</label>
+              <label className="text-xs font-mono text-slate-500 dark:text-slate-400">Difficulty</label>
               <select
-                className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700"
+                className="h-10 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 text-sm text-slate-700 dark:text-slate-200"
                 value={difficulty}
                 onChange={(e) => onDifficultyChange?.(e.target.value)}
               >
@@ -253,8 +253,8 @@ function MemberSelect({
             type="button"
             className={`px-3 py-1.5 rounded-full text-xs font-medium border ${
               domainFilter === "all"
-                ? "bg-slate-900 text-white border-slate-900"
-                : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                ? "bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 border-slate-900 dark:border-slate-100"
+                : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700"
             }`}
             onClick={() => setDomainFilter("all")}
           >
@@ -267,7 +267,7 @@ function MemberSelect({
               className={`px-3 py-1.5 rounded-full text-xs font-medium border ${
                 domainFilter === domain
                   ? "bg-slate-900 text-white border-slate-900"
-                  : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                  : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700"
               }`}
               onClick={() => setDomainFilter(domain)}
             >
@@ -312,7 +312,7 @@ function MemberSelect({
                         <div className="absolute right-2 top-2 z-10 flex gap-2">
                           <button
                             type="button"
-                            className="rounded-full bg-white/90 border border-slate-200 p-1.5 text-slate-600 shadow-sm hover:text-slate-900"
+                            className="rounded-full bg-white/90 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 p-1.5 text-slate-600 dark:text-slate-300 shadow-sm hover:text-slate-900 dark:hover:text-white"
                             onClick={(e) => {
                               e.stopPropagation();
                               openEditor(agent);
@@ -323,7 +323,7 @@ function MemberSelect({
                           </button>
                           <button
                             type="button"
-                            className="rounded-full bg-white/90 border border-slate-200 p-1.5 text-slate-600 shadow-sm hover:text-red-600"
+                            className="rounded-full bg-white/90 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 p-1.5 text-slate-600 dark:text-slate-300 shadow-sm hover:text-red-600 dark:hover:text-red-400"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleDelete(agent);
@@ -347,7 +347,7 @@ function MemberSelect({
           )}
         </div>
 
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-6 shadow-lg z-20">
+        <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 p-6 shadow-lg z-20">
           <div className="max-w-7xl mx-auto flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="flex -space-x-2">
@@ -365,7 +365,7 @@ function MemberSelect({
                 {Array(remaining).fill(0).map(
     (_, i) => <div
       key={`empty-${i}`}
-      className="w-10 h-10 rounded-full border-2 border-slate-200 bg-slate-50 border-dashed flex items-center justify-center text-slate-300"
+      className="w-10 h-10 rounded-full border-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-700 border-dashed flex items-center justify-center text-slate-300 dark:text-slate-500"
     >
 
                       ?
@@ -393,7 +393,7 @@ function MemberSelect({
         <DialogHeader>Edit Persona Fields</DialogHeader>
         <DialogContent className="space-y-4">
           <div>
-            <p className="text-sm font-semibold text-slate-900">{editingAgent?.name}</p>
+            <p className="text-sm font-semibold text-slate-900 dark:text-white">{editingAgent?.name}</p>
             <p className="text-xs text-slate-500">{editingAgent?.role} - {editingAgent?.era}</p>
           </div>
           {editError ? (
@@ -410,7 +410,7 @@ function MemberSelect({
           <div className="space-y-1">
             <label className="text-xs font-mono text-slate-500">Backstory / lore</label>
             <textarea
-              className="w-full min-h-[90px] rounded-md border border-slate-200 p-3 text-sm text-slate-700"
+              className="w-full min-h-[90px] rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 text-sm text-slate-700 dark:text-slate-100"
               placeholder="1-2 sentences of background or lore"
               value={editDraft.backstoryLore}
               onChange={(e) => setEditDraft((d) => ({ ...d, backstoryLore: e.target.value }))}

@@ -39,13 +39,13 @@ const Input = forwardRef(
     const characterCount = String(inputValue).length;
     return <div className="w-full">
         {label && <label
-      className={`block mb-1 text-sm font-medium ${disabled ? "text-gray-400" : "text-gray-700"}`}
+      className={`block mb-1 text-sm font-medium ${disabled ? "text-gray-400 dark:text-slate-500" : "text-gray-700 dark:text-slate-300"}`}
     >
 
             {label}
           </label>}
         <div className="relative">
-          {startAdornment && <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
+          {startAdornment && <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-slate-400">
               {startAdornment}
             </div>}
           <input
@@ -67,19 +67,19 @@ const Input = forwardRef(
               transition-colors
               ${startAdornment ? "pl-10" : ""}
               ${endAdornment || isPassword ? "pr-10" : ""}
-              ${error ? "border-gray-900 bg-gray-50" : "border-gray-300 hover:border-gray-400"}
-              ${disabled ? "bg-gray-100 text-gray-400 cursor-not-allowed" : "bg-white"}
-              ${readOnly ? "bg-gray-50 cursor-default" : ""}
-              focus:border-gray-900
+              ${error ? "border-gray-900 dark:border-slate-400 bg-gray-50 dark:bg-slate-700" : "border-gray-300 dark:border-slate-600 hover:border-gray-400 dark:hover:border-slate-500"}
+              ${disabled ? "bg-gray-100 dark:bg-slate-700 text-gray-400 dark:text-slate-500 cursor-not-allowed" : "bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"}
+              ${readOnly ? "bg-gray-50 dark:bg-slate-700 cursor-default" : ""}
+              focus:border-gray-900 dark:focus:border-slate-300
               focus:ring-1
-              focus:ring-gray-900
+              focus:ring-gray-900 dark:focus:ring-slate-300
               ${className || ""}
             `}
       aria-invalid={!!error}
       aria-describedby={error ? `${props.id}-error` : helperText ? `${props.id}-helper` : void 0}
     />
 
-          {(endAdornment || isPassword) && <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">
+          {(endAdornment || isPassword) && <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-slate-400">
               {isPassword ? <button
       type="button"
       onClick={() => setShowPassword(!showPassword)}
@@ -94,12 +94,12 @@ const Input = forwardRef(
         <div className="mt-1 flex justify-between">
           {(error || helperText) && <span
       id={error ? `${props.id}-error` : `${props.id}-helper`}
-      className={`text-sm ${error ? "text-gray-900" : "text-gray-500"}`}
+      className={`text-sm ${error ? "text-gray-900 dark:text-red-300" : "text-gray-500 dark:text-slate-400"}`}
     >
 
               {error || helperText}
             </span>}
-          {showCharacterCount && maxLength && <span className="text-sm text-gray-500">
+          {showCharacterCount && maxLength && <span className="text-sm text-gray-500 dark:text-slate-400">
               {characterCount}/{maxLength}
             </span>}
         </div>
