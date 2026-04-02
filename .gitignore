@@ -12,6 +12,9 @@ node_modules/
 dist/
 build/
 coverage/
+dependency-report.html
+dependency-graph.json
+dependency-graph.dot
 
 # Logs
 *.log

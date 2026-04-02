@@ -2,6 +2,20 @@
 
 An AI-powered debate arena where you assemble a council of personas, pick strategies, and run structured  debate amoung personas or with other opponents. The app blends drafting, live response generation, and post-round analytics to create a tactical, replayable debating experience.
 
+**Architecture Visualization**
+- The repo includes a root-level Dependency Cruiser setup for visualizing module relationships across `frontend/src` and `backend`.
+- Run `npm install` at the repo root once to install the tooling.
+- Run `npm run depcruise:validate` to check architecture rules.
+- Run `npm run depcruise:html` to generate `dependency-report.html`, a browsable dependency report.
+- Run `npm run depcruise:json` to generate `dependency-graph.json` for custom analysis or tooling.
+- Run `npm run depcruise:dot` to generate `dependency-graph.dot` if you want to render the graph with Graphviz.
+
+Starter rules currently enforced in [`.dependency-cruiser.cjs`](/home/roshan-singh/All_Code/projects/AICouncil_frontend/.dependency-cruiser.cjs):
+- `frontend/src` cannot import from `backend`
+- `backend/routes` cannot import directly from `backend/DB`
+- `backend/models` cannot import from `backend/routes`
+- circular dependencies are flagged as warnings
+
 **Features**
 - User registration, login, and profile lookup with token-based auth
 - Persistent client session state (Zustand + local persistence)

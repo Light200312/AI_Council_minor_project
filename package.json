@@ -1,0 +1,14 @@
+{
+  "name": "aicouncil-architecture-tools",
+  "private": true,
+  "scripts": {
+    "depcruise": "depcruise --config .dependency-cruiser.cjs frontend/src backend",
+    "depcruise:validate": "depcruise --config .dependency-cruiser.cjs --output-type err-long frontend/src backend",
+    "depcruise:html": "depcruise --config .dependency-cruiser.cjs --output-type err-html frontend/src backend > dependency-report.html",
+    "depcruise:dot": "depcruise --config .dependency-cruiser.cjs --output-type dot frontend/src backend > dependency-graph.dot",
+    "depcruise:json": "depcruise --config .dependency-cruiser.cjs --output-type json frontend/src backend > dependency-graph.json"
+  },
+  "devDependencies": {
+    "dependency-cruiser": "^16.10.4"
+  }
+}
