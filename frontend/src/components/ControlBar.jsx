@@ -15,9 +15,13 @@ function getSessionDisplayCode(sessionId) {
 }
 
 // ControlBar shows session-level actions and live status.
-function ControlBar() {
+function ControlBar({ exportVerdict, isExportingVerdict = false, onConcludeDebate }) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [exportError, setExportError] = useState("");
   const sessionId = useAppStore((state) => state.gameState.sessionId);
+  const mode = useAppStore((state) => state.gameState.mode);
+  const roundResults = useAppStore((state) => state.gameState.roundResults);
+  const combatLog = useAppStore((state) => state.gameState.combatLog);
   const apiRoutingMode = useAppStore((state) => state.apiRoutingMode);
   const setApiRoutingMode = useAppStore((state) => state.setApiRoutingMode);
   const orchestratorMode = useAppStore((state) => state.orchestratorMode);
@@ -42,6 +46,34 @@ function ControlBar() {
     orchestrationModes.find((mode) => mode.id === orchestratorMode)?.label || "Fast";
   const selectedMemoryMode = memoryModes.find((mode) => mode.id === memoryMode)?.label || "Memory: Minimal";
   const sessionDisplayCode = getSessionDisplayCode(sessionId);
+  const canExportVerdict = mode === "combat" && (roundResults.length > 0 || combatLog.length > 1);
+  const canConcludeDebate = mode === "mentor" || mode === "historical" || mode === "fantasy";
+
+  const handleExportVerdict = async () => {
+    setExportError("");
+    try {
+      if (typeof exportVerdict !== "function") {
+        throw new Error("Verdict export is unavailable.");
+      }
+      await exportVerdict();
+    } catch (error) {
+      setExportError(error.message || "Failed to export verdict.");
+    }
+  };
+
+  const handlePrimaryAction = async () => {
+    setExportError("");
+    if (canConcludeDebate) {
+      if (typeof onConcludeDebate !== "function") {
+        setExportError("Conclude debate is unavailable.");
+        return;
+      }
+      onConcludeDebate();
+      return;
+    }
+
+    await handleExportVerdict();
+  };
 
   const renderOptionGroup = ({ title, options, selectedValue, onChange }) => (
     <section className="space-y-3">
@@ -121,9 +153,12 @@ function ControlBar() {
     variant="secondary"
     size="small"
     leftIcon={<Download className="w-4 h-4" />}
+    onClick={handlePrimaryAction}
+    disabled={canConcludeDebate ? false : !canExportVerdict}
+    loading={isExportingVerdict}
   >
 
-          Export Verdict
+          {canConcludeDebate ? "Conclude Debate" : "Export Verdict"}
         </Button>
         <Button
     variant="primary"
@@ -134,6 +169,11 @@ function ControlBar() {
           New Debate
         </Button>
       </div>
+      {exportError ? (
+        <div className="w-full text-right text-xs text-red-600 dark:text-red-400">
+          {exportError}
+        </div>
+      ) : null}
     </div>
 
       <Dialog

@@ -25,6 +25,7 @@ function initialGameState() {
     combatLog: [],
     roundResults: [],
     lastVerdict: null,
+    finalVerdict: null,
     playerScore: 0,
     opponentScore: 0,
     biasLevel: 50,
@@ -209,6 +210,22 @@ const useAppStore = create(
         const token = get().token;
         if (!token) throw new Error("Not authenticated.");
         return api.combatJudgeRound({ topic, playerArgument, opponentArgument }, token);
+      },
+
+      combatFinalizeVerdict: async ({ topic, playerTeam, opponentTeam, combatLog, roundResults, scores }) => {
+        const token = get().token;
+        if (!token) throw new Error("Not authenticated.");
+        const { verdict } = await api.combatFinalizeVerdict(
+          { topic, playerTeam, opponentTeam, combatLog, roundResults, scores },
+          token
+        );
+        set((state) => ({
+          gameState: {
+            ...state.gameState,
+            finalVerdict: verdict || null,
+          },
+        }));
+        return verdict;
       },
 
       authenticate: async (mode, payload) => {

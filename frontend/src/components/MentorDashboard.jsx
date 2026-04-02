@@ -249,7 +249,9 @@ function MentorDashboard({ topic, members }) {
 
           <Card>
             <div className="p-4 border-b border-slate-200 dark:border-slate-700">
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">Present Members</h3>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                Present Members
+              </h3>
             </div>
             <div className="p-4 space-y-3">
               {members.map((member) => (

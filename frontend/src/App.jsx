@@ -13,17 +13,20 @@ import { ModeSelect } from "./components/ModeSelect";
 import { TopicSelect } from "./components/TopicSelect";
 import { MemberSelect } from "./components/MemberSelect";
 import { MentorDashboard } from "./components/MentorDashboard";
+import { ConcludeDebateModal } from "./components/ConcludeDebateModal";
 import { DiscussionHistory } from "./components/DiscussionHistory";
 import { AuthPage } from "./components/AuthPage";
 import { Button } from "./components/ui/Button";
 import { STRATEGIES, MOCK_HEATMAP } from "./data/mockData";
 import { useAppStore } from "./store/useAppStore";
+import { downloadPdf } from "./lib/pdf";
 
 function App() {
   // Global app state + actions from the central store.
   const token = useAppStore((state) => state.token);
   const agents = useAppStore((state) => state.agents);
   const gameState = useAppStore((state) => state.gameState);
+  const messages = useAppStore((state) => state.messages);
   const theme = useAppStore((state) => state.theme);
   const authenticate = useAppStore((state) => state.authenticate);
   const signOut = useAppStore((state) => state.signOut);
@@ -52,6 +55,7 @@ function App() {
   const respondAsAgent = useAppStore((state) => state.respondAsAgent);
   const combatNextOpponentTurn = useAppStore((state) => state.combatNextOpponentTurn);
   const combatJudgeRound = useAppStore((state) => state.combatJudgeRound);
+  const combatFinalizeVerdict = useAppStore((state) => state.combatFinalizeVerdict);
   const appendCombatLog = useAppStore((state) => state.appendCombatLog);
   const addRoundResult = useAppStore((state) => state.addRoundResult);
   const updateGameState = useAppStore((state) => state.updateGameState);
@@ -71,8 +75,10 @@ function App() {
   const [selectedSpeakerId, setSelectedSpeakerId] = useState(null);
   const [previewText, setPreviewText] = useState("");
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [isExportingVerdict, setIsExportingVerdict] = useState(false);
   const [tweakInstruction, setTweakInstruction] = useState("");
   const [showRightSidebar, setShowRightSidebar] = useState(true);
+  const [isConcludeDebateOpen, setIsConcludeDebateOpen] = useState(false);
   const userRowRefs = useRef([]);
   const opponentRowRefs = useRef([]);
   const [rowHeights, setRowHeights] = useState([]);
@@ -127,18 +133,6 @@ function App() {
     });
     setRowHeights(heights);
   }, [roundPairs, previewText, gameState.combatLog.length]);
-
-
-
-  // Demo helper to flash the "speaking" state for a speaker.
-  const simulateTurn = (speakerId) => {
-    setActiveSpeakerId(speakerId);
-    setIsSpeaking(true);
-    setTimeout(() => {
-      setIsSpeaking(false);
-      setActiveSpeakerId(void 0);
-    }, 3000);
-  };
 
   // Transition from coin toss into the first combat round.
   const handleCoinTossComplete = (winner) => {
@@ -380,6 +374,89 @@ function App() {
     }
   };
 
+  const handleExportVerdict = async () => {
+    if (gameState.mode !== "combat") throw new Error("Verdict export is only available in combat mode.");
+    if (!roundResults.length && gameState.combatLog.length < 2) {
+      throw new Error("Complete at least one exchange before exporting a verdict.");
+    }
+
+    setIsExportingVerdict(true);
+    try {
+      const verdict = await combatFinalizeVerdict({
+        topic: gameState.topic,
+        playerTeam: gameState.playerTeam,
+        opponentTeam: gameState.opponentTeam,
+        combatLog: gameState.combatLog,
+        roundResults,
+        scores: {
+          playerScore: gameState.playerScore,
+          opponentScore: gameState.opponentScore,
+        },
+      });
+
+      const sections = [
+        { type: "title", text: `AI Council Verdict - Session ${gameState.sessionId || "N/A"}` },
+        { type: "paragraph", text: `Topic: ${gameState.topic}` },
+        {
+          type: "paragraph",
+          text: `Player Council: ${gameState.playerTeam.map((agent) => agent.name).join(", ") || "Unknown"}`,
+        },
+        {
+          type: "paragraph",
+          text: `Opponent Council: ${gameState.opponentTeam.map((agent) => agent.name).join(", ") || "Unknown"}`,
+        },
+        {
+          type: "paragraph",
+          text: `Winner: ${String(verdict?.winner || "tie").toUpperCase()} | Final Score: Player ${verdict?.finalScore?.player ?? gameState.playerScore} - Opponent ${verdict?.finalScore?.opponent ?? gameState.opponentScore}`,
+        },
+        {
+          type: "paragraph",
+          text: `Confidence: ${Math.round(Number(verdict?.confidence || 0) * 100)}%`,
+        },
+        { type: "heading", text: "Final Summary" },
+        { type: "paragraph", text: verdict?.summary || verdict?.reasoning || "No final summary available." },
+        { type: "heading", text: "Judge Reasoning" },
+        { type: "paragraph", text: verdict?.reasoning || "No judge reasoning available." },
+        { type: "heading", text: "Key Moments" },
+        {
+          type: "list",
+          items:
+            verdict?.keyMoments?.length
+              ? verdict.keyMoments
+              : roundResults.map((result) => `Round ${result.round}: ${result.reasoning || result.winner}`),
+        },
+        { type: "heading", text: "Player Strengths" },
+        { type: "list", items: verdict?.playerStrengths?.length ? verdict.playerStrengths : ["No strengths recorded."] },
+        { type: "heading", text: "Player Weaknesses" },
+        { type: "list", items: verdict?.playerWeaknesses?.length ? verdict.playerWeaknesses : ["No weaknesses recorded."] },
+        { type: "heading", text: "Opponent Strengths" },
+        { type: "list", items: verdict?.opponentStrengths?.length ? verdict.opponentStrengths : ["No strengths recorded."] },
+        { type: "heading", text: "Opponent Weaknesses" },
+        { type: "list", items: verdict?.opponentWeaknesses?.length ? verdict.opponentWeaknesses : ["No weaknesses recorded."] },
+        { type: "heading", text: "Round Verdicts" },
+        {
+          type: "list",
+          items: roundResults.map(
+            (result) =>
+              `Round ${result.round}: winner=${String(result.winner || "tie").toUpperCase()}, playerScore=${result.playerScore}, opponentScore=${result.opponentScore}, reasoning=${result.reasoning || "No reasoning"}`
+          ),
+        },
+        { type: "heading", text: "Transcript Highlights" },
+        {
+          type: "list",
+          items: gameState.combatLog.map(
+            (entry) => `${entry.speakerName}: ${String(entry.text || "").replace(/\s+/g, " ").trim()}`
+          ),
+        },
+      ];
+
+      downloadPdf(`verdict-${gameState.sessionId || "session"}.pdf`, sections);
+      return verdict;
+    } finally {
+      setIsExportingVerdict(false);
+    }
+  };
+
   // Auth gate: show sign-in when no token exists.
   if (!token) {
     return <AuthPage onAuthenticate={authenticate} />;
@@ -491,15 +568,18 @@ function App() {
       />
 
       <div className="flex-1 ml-64 flex flex-col h-full overflow-hidden relative dark:bg-slate-900">
-        <ControlBar />
+        <ControlBar
+          exportVerdict={handleExportVerdict}
+          isExportingVerdict={isExportingVerdict}
+          onConcludeDebate={() => setIsConcludeDebateOpen(true)}
+        />
         <div className="absolute right-6 top-15 z-30">
-          <Button
-            variant="secondary"
-            size="small"
+          <button
+           className="bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-600 border border-slate-200 dark:border-slate-600 rounded-xl p-1"
             onClick={() => setShowRightSidebar((prev) => !prev)}
           >
-            {showRightSidebar ? "Hide Sidebar" : "Show Sidebar"}
-          </Button>
+            {showRightSidebar ? "<" : ">"}
+          </button>
         </div>
         <main className="flex-1 overflow-y-auto p-6">
           {activeTab === "history" ? (
@@ -806,6 +886,13 @@ function App() {
           await reloadAgents();
           toggleMember(agent.id);
         }}
+      />
+      <ConcludeDebateModal
+        isOpen={isConcludeDebateOpen}
+        onClose={() => setIsConcludeDebateOpen(false)}
+        topic={gameState.topic}
+        messages={messages}
+        members={gameState.playerTeam}
       />
     </div>
   );
