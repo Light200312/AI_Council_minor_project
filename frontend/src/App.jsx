@@ -13,19 +13,24 @@ import { ModeSelect } from "./components/ModeSelect";
 import { TopicSelect } from "./components/TopicSelect";
 import { MemberSelect } from "./components/MemberSelect";
 import { MentorDashboard } from "./components/MentorDashboard";
+import { ConcludeDebateModal } from "./components/ConcludeDebateModal";
 import { DiscussionHistory } from "./components/DiscussionHistory";
 import { AuthPage } from "./components/AuthPage";
 import { Button } from "./components/ui/Button";
 import { STRATEGIES, MOCK_HEATMAP } from "./data/mockData";
 import { useAppStore } from "./store/useAppStore";
+import { downloadPdf } from "./lib/pdf";
 
 function App() {
   // Global app state + actions from the central store.
   const token = useAppStore((state) => state.token);
   const agents = useAppStore((state) => state.agents);
   const gameState = useAppStore((state) => state.gameState);
+  const messages = useAppStore((state) => state.messages);
+  const theme = useAppStore((state) => state.theme);
   const authenticate = useAppStore((state) => state.authenticate);
   const signOut = useAppStore((state) => state.signOut);
+  const toggleTheme = useAppStore((state) => state.toggleTheme);
   const bootstrapSession = useAppStore((state) => state.bootstrapSession);
   const setMode = useAppStore((state) => state.setMode);
   const setTopic = useAppStore((state) => state.setTopic);
@@ -50,6 +55,7 @@ function App() {
   const respondAsAgent = useAppStore((state) => state.respondAsAgent);
   const combatNextOpponentTurn = useAppStore((state) => state.combatNextOpponentTurn);
   const combatJudgeRound = useAppStore((state) => state.combatJudgeRound);
+  const combatFinalizeVerdict = useAppStore((state) => state.combatFinalizeVerdict);
   const appendCombatLog = useAppStore((state) => state.appendCombatLog);
   const addRoundResult = useAppStore((state) => state.addRoundResult);
   const updateGameState = useAppStore((state) => state.updateGameState);
@@ -69,8 +75,10 @@ function App() {
   const [selectedSpeakerId, setSelectedSpeakerId] = useState(null);
   const [previewText, setPreviewText] = useState("");
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [isExportingVerdict, setIsExportingVerdict] = useState(false);
   const [tweakInstruction, setTweakInstruction] = useState("");
   const [showRightSidebar, setShowRightSidebar] = useState(true);
+  const [isConcludeDebateOpen, setIsConcludeDebateOpen] = useState(false);
   const userRowRefs = useRef([]);
   const opponentRowRefs = useRef([]);
   const [rowHeights, setRowHeights] = useState([]);
@@ -80,6 +88,16 @@ function App() {
   useEffect(() => {
     bootstrapSession();
   }, [bootstrapSession]);
+
+  // Apply dark theme class to document root.
+  useLayoutEffect(() => {
+    const root = document.documentElement;
+    if (theme === "dark") {
+      root.classList.add("dark");
+    } else {
+      root.classList.remove("dark");
+    }
+  }, [theme]);
 
   // Pair user/opponent messages into rounds for the combat log display.
   const roundPairs = useMemo(() => {
@@ -115,18 +133,6 @@ function App() {
     });
     setRowHeights(heights);
   }, [roundPairs, previewText, gameState.combatLog.length]);
-
-
-
-  // Demo helper to flash the "speaking" state for a speaker.
-  const simulateTurn = (speakerId) => {
-    setActiveSpeakerId(speakerId);
-    setIsSpeaking(true);
-    setTimeout(() => {
-      setIsSpeaking(false);
-      setActiveSpeakerId(void 0);
-    }, 3000);
-  };
 
   // Transition from coin toss into the first combat round.
   const handleCoinTossComplete = (winner) => {
@@ -368,6 +374,89 @@ function App() {
     }
   };
 
+  const handleExportVerdict = async () => {
+    if (gameState.mode !== "combat") throw new Error("Verdict export is only available in combat mode.");
+    if (!roundResults.length && gameState.combatLog.length < 2) {
+      throw new Error("Complete at least one exchange before exporting a verdict.");
+    }
+
+    setIsExportingVerdict(true);
+    try {
+      const verdict = await combatFinalizeVerdict({
+        topic: gameState.topic,
+        playerTeam: gameState.playerTeam,
+        opponentTeam: gameState.opponentTeam,
+        combatLog: gameState.combatLog,
+        roundResults,
+        scores: {
+          playerScore: gameState.playerScore,
+          opponentScore: gameState.opponentScore,
+        },
+      });
+
+      const sections = [
+        { type: "title", text: `AI Council Verdict - Session ${gameState.sessionId || "N/A"}` },
+        { type: "paragraph", text: `Topic: ${gameState.topic}` },
+        {
+          type: "paragraph",
+          text: `Player Council: ${gameState.playerTeam.map((agent) => agent.name).join(", ") || "Unknown"}`,
+        },
+        {
+          type: "paragraph",
+          text: `Opponent Council: ${gameState.opponentTeam.map((agent) => agent.name).join(", ") || "Unknown"}`,
+        },
+        {
+          type: "paragraph",
+          text: `Winner: ${String(verdict?.winner || "tie").toUpperCase()} | Final Score: Player ${verdict?.finalScore?.player ?? gameState.playerScore} - Opponent ${verdict?.finalScore?.opponent ?? gameState.opponentScore}`,
+        },
+        {
+          type: "paragraph",
+          text: `Confidence: ${Math.round(Number(verdict?.confidence || 0) * 100)}%`,
+        },
+        { type: "heading", text: "Final Summary" },
+        { type: "paragraph", text: verdict?.summary || verdict?.reasoning || "No final summary available." },
+        { type: "heading", text: "Judge Reasoning" },
+        { type: "paragraph", text: verdict?.reasoning || "No judge reasoning available." },
+        { type: "heading", text: "Key Moments" },
+        {
+          type: "list",
+          items:
+            verdict?.keyMoments?.length
+              ? verdict.keyMoments
+              : roundResults.map((result) => `Round ${result.round}: ${result.reasoning || result.winner}`),
+        },
+        { type: "heading", text: "Player Strengths" },
+        { type: "list", items: verdict?.playerStrengths?.length ? verdict.playerStrengths : ["No strengths recorded."] },
+        { type: "heading", text: "Player Weaknesses" },
+        { type: "list", items: verdict?.playerWeaknesses?.length ? verdict.playerWeaknesses : ["No weaknesses recorded."] },
+        { type: "heading", text: "Opponent Strengths" },
+        { type: "list", items: verdict?.opponentStrengths?.length ? verdict.opponentStrengths : ["No strengths recorded."] },
+        { type: "heading", text: "Opponent Weaknesses" },
+        { type: "list", items: verdict?.opponentWeaknesses?.length ? verdict.opponentWeaknesses : ["No weaknesses recorded."] },
+        { type: "heading", text: "Round Verdicts" },
+        {
+          type: "list",
+          items: roundResults.map(
+            (result) =>
+              `Round ${result.round}: winner=${String(result.winner || "tie").toUpperCase()}, playerScore=${result.playerScore}, opponentScore=${result.opponentScore}, reasoning=${result.reasoning || "No reasoning"}`
+          ),
+        },
+        { type: "heading", text: "Transcript Highlights" },
+        {
+          type: "list",
+          items: gameState.combatLog.map(
+            (entry) => `${entry.speakerName}: ${String(entry.text || "").replace(/\s+/g, " ").trim()}`
+          ),
+        },
+      ];
+
+      downloadPdf(`verdict-${gameState.sessionId || "session"}.pdf`, sections);
+      return verdict;
+    } finally {
+      setIsExportingVerdict(false);
+    }
+  };
+
   // Auth gate: show sign-in when no token exists.
   if (!token) {
     return <AuthPage onAuthenticate={authenticate} />;
@@ -464,7 +553,7 @@ function App() {
 
   // Main arena layout (sidebar + content area).
   return (
-    <div className="flex h-screen w-full bg-[#f5f5f7] text-[#1f2933] font-sans overflow-hidden">
+    <div className="flex h-screen w-full bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-sans overflow-hidden">
       <Sidebar
         activeTab={activeTab}
         onTabChange={handleTabChange}
@@ -474,18 +563,23 @@ function App() {
         currentTemperature={gameState.temperature}
         onNewSession={resetSession}
         onSignOut={signOut}
+        theme={theme}
+        onThemeToggle={toggleTheme}
       />
 
-      <div className="flex-1 ml-64 flex flex-col h-full overflow-hidden relative">
-        <ControlBar />
+      <div className="flex-1 ml-64 flex flex-col h-full overflow-hidden relative dark:bg-slate-900">
+        <ControlBar
+          exportVerdict={handleExportVerdict}
+          isExportingVerdict={isExportingVerdict}
+          onConcludeDebate={() => setIsConcludeDebateOpen(true)}
+        />
         <div className="absolute right-6 top-15 z-30">
-          <Button
-            variant="secondary"
-            size="small"
+          <button
+           className="bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-600 border border-slate-200 dark:border-slate-600 rounded-xl p-1"
             onClick={() => setShowRightSidebar((prev) => !prev)}
           >
-            {showRightSidebar ? "Hide Sidebar" : "Show Sidebar"}
-          </Button>
+            {showRightSidebar ? "<" : ">"}
+          </button>
         </div>
         <main className="flex-1 overflow-y-auto p-6">
           {activeTab === "history" ? (
@@ -511,25 +605,25 @@ function App() {
                   maxSelection={maxMembers}
                 />
               ) : gameState.phase === "complete" ? (
-                <div className="max-w-4xl mx-auto bg-white border border-slate-200 rounded-2xl p-8 shadow-sm">
-                  <h2 className="text-2xl font-bold text-slate-900 mb-2">
+                <div className="max-w-4xl mx-auto bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-8 shadow-sm">
+                  <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
                     Debate Results
                   </h2>
-                  <p className="text-slate-500 mb-6">
+                  <p className="text-slate-500 dark:text-slate-400 mb-6">
                     Final score: {gameState.playerScore} / {gameState.playerScore + gameState.opponentScore}
                   </p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="rounded-xl border border-slate-200 p-4">
-                      <h3 className="text-sm font-mono text-slate-500 mb-2">YOU</h3>
-                      <div className="text-3xl font-bold text-slate-900">{gameState.playerScore}</div>
+                    <div className="rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-900 p-4">
+                      <h3 className="text-sm font-mono text-slate-500 dark:text-slate-400 mb-2">YOU</h3>
+                      <div className="text-3xl font-bold text-slate-900 dark:text-white">{gameState.playerScore}</div>
                     </div>
-                    <div className="rounded-xl border border-slate-200 p-4">
-                      <h3 className="text-sm font-mono text-slate-500 mb-2">OPPONENT</h3>
-                      <div className="text-3xl font-bold text-slate-400">{gameState.opponentScore}</div>
+                    <div className="rounded-xl border border-slate-200 dark:border-slate-700 dark:bg-slate-900 p-4">
+                      <h3 className="text-sm font-mono text-slate-500 dark:text-slate-400 mb-2">OPPONENT</h3>
+                      <div className="text-3xl font-bold text-slate-400 dark:text-slate-500">{gameState.opponentScore}</div>
                     </div>
                   </div>
                   <div className="mt-6">
-                    <h3 className="text-sm font-bold text-slate-700 mb-2">Round Verdicts</h3>
+                    <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Round Verdicts</h3>
                     <div className="space-y-3">
                       {roundResults.map((result) => (
                         <div key={result.round} className="border border-slate-200 rounded-lg p-3">
@@ -556,31 +650,31 @@ function App() {
                 <div className="grid grid-cols-12 gap-6 h-full">
                   <div className={`${showRightSidebar ? "col-span-9" : "col-span-12"} flex flex-col gap-6`}>
                     <div className={`grid ${showRightSidebar ? "grid-cols-12" : "grid-cols-14"} gap-6`}>
-                      <div className="col-span-2 bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
-                        <div className="text-sm font-bold text-slate-700 mb-3">User</div>
+                      <div className="col-span-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 shadow-sm">
+                        <div className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-3">User</div>
                         <div className="space-y-3">
                           {gameState.playerTeam.map((agent) => (
                             <div key={agent.id} className="flex flex-col items-center gap-2">
                               <div
                                 className={`w-14 h-14 rounded-full border-2 flex items-center justify-center font-mono text-sm font-bold ${
-                                  activeSpeakerId === agent.id ? "border-blue-500 bg-blue-50" : "border-slate-200 bg-white"
+                                  activeSpeakerId === agent.id ? "border-blue-500 bg-blue-50 dark:bg-blue-900" : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900"
                                 }`}
                               >
                                 {agent.avatarInitials}
                               </div>
-                              <div className="text-xs text-slate-700 text-center">{agent.name}</div>
+                              <div className="text-xs text-slate-700 dark:text-slate-300 text-center">{agent.name}</div>
                             </div>
                           ))}
                         </div>
                       </div>
 
-                      <div className={`${showRightSidebar ? "col-span-8" : "col-span-10"} bg-white border border-slate-200 rounded-2xl p-5 shadow-sm max-h-[60vh] overflow-hidden`}>
+                      <div className={`${showRightSidebar ? "col-span-8" : "col-span-10"} bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-5 shadow-sm max-h-[60vh] overflow-hidden`}>
                         <div className="flex items-center justify-between mb-4">
                           <div>
-                            <div className="text-xs font-mono text-slate-400 uppercase tracking-widest">Topic</div>
-                            <div className="text-lg font-bold text-slate-900">{gameState.topic}</div>
+                            <div className="text-xs font-mono text-slate-400 dark:text-slate-500 uppercase tracking-widest">Topic</div>
+                            <div className="text-lg font-bold text-slate-900 dark:text-white">{gameState.topic}</div>
                           </div>
-                          <div className="text-xs text-slate-500">
+                          <div className="text-xs text-slate-500 dark:text-slate-400">
                             Round {gameState.currentRound}
                             {gameState.totalRounds ? ` / ${gameState.totalRounds}` : " / Infinity"}
                           </div>
@@ -594,27 +688,27 @@ function App() {
                             <div key={`round-${pair.round}`} className="grid grid-cols-2 gap-4 items-stretch">
                               <div
                                 ref={(el) => (userRowRefs.current[index] = el)}
-                                className="rounded-lg border border-slate-200 p-4"
+                                className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4"
                                 style={rowHeights[index] ? { minHeight: `${rowHeights[index]}px` } : undefined}
                               >
-                                <div className="flex items-center justify-between text-[11px] text-slate-500 mb-2">
+                                <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 mb-2">
                                   <span>Round {pair.round}</span>
                                   <span>{pair.player?.speakerName || "-"}</span>
                                 </div>
-                                <div className="text-sm text-slate-700 whitespace-pre-wrap">
+                                <div className="text-sm text-slate-700 dark:text-slate-200 whitespace-pre-wrap">
                                   {pair.player?.text || "No response yet."}
                                 </div>
                               </div>
                               <div
                                 ref={(el) => (opponentRowRefs.current[index] = el)}
-                                className="rounded-lg border border-slate-200 p-4"
+                                className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4"
                                 style={rowHeights[index] ? { minHeight: `${rowHeights[index]}px` } : undefined}
                               >
-                                <div className="flex items-center justify-between text-[11px] text-slate-500 mb-2">
+                                <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 mb-2">
                                   <span>Round {pair.round}</span>
                                   <span>{pair.opponent?.speakerName || "-"}</span>
                                 </div>
-                                <div className="text-sm text-slate-700 whitespace-pre-wrap">
+                                <div className="text-sm text-slate-700 dark:text-slate-200 whitespace-pre-wrap">
                                   {pair.opponent?.text || "No response yet."}
                                 </div>
                               </div>
@@ -626,19 +720,21 @@ function App() {
                         </div>
                       </div>
 
-                      <div className="col-span-2 bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
-                        <div className="text-sm font-bold text-slate-700 mb-3">Computer</div>
+                      <div className="col-span-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 shadow-sm">
+                        <div className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-3">Computer</div>
                         <div className="space-y-3">
                           {gameState.opponentTeam.map((agent) => (
                             <div key={agent.id} className="flex flex-col items-center gap-2">
                               <div
                                 className={`w-14 h-14 rounded-full border-2 flex items-center justify-center font-mono text-sm font-bold ${
-                                  activeSpeakerId === agent.id ? "border-red-400 bg-red-50" : "border-slate-200 bg-white"
+                                  activeSpeakerId === agent.id
+                                    ? "border-red-400 bg-red-50 dark:bg-red-950"
+                                    : "border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700"
                                 }`}
                               >
                                 {agent.avatarInitials}
                               </div>
-                              <div className="text-xs text-slate-700 text-center">{agent.name}</div>
+                              <div className="text-xs text-slate-700 dark:text-slate-200 text-center">{agent.name}</div>
                             </div>
                           ))}
                         </div>
@@ -658,17 +754,17 @@ function App() {
                     />
                     {/* Draft editor appears once a speaker is chosen */}
                     {gameState.phase === "combat" && selectedSpeakerId ? (
-                      <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
-                        <h4 className="text-sm font-bold text-slate-700 mb-2">Response Editor</h4>
+                      <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 shadow-sm">
+                        <h4 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-2">Response Editor</h4>
                         <textarea
-                          className="w-full min-h-[220px] rounded-md border border-slate-200 p-3 text-sm text-slate-700"
+                          className="w-full min-h-[220px] rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 text-sm text-slate-700 dark:text-slate-100"
                           placeholder="Generated response will appear here. You can edit it before sending."
                           value={previewText}
                           onChange={(e) => setPreviewText(e.target.value)}
                         />
                         <div className="mt-3 flex items-center gap-3">
                           <input
-                            className="flex-1 h-10 rounded-md border border-slate-200 px-3 text-sm text-slate-700"
+                            className="flex-1 h-10 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-sm text-slate-700 dark:text-slate-100"
                             placeholder="Tweak instructions (optional)"
                             value={tweakInstruction}
                             onChange={(e) => setTweakInstruction(e.target.value)}
@@ -682,28 +778,28 @@ function App() {
                             Apply Tweak
                           </Button>
                         </div>
-                        <div className="mt-3 text-xs text-slate-400">
+                        <div className="mt-3 text-xs text-slate-400 dark:text-slate-500">
                           Edit the response directly, or use a tweak instruction to revise it.
                         </div>
                       </div>
                     ) : null}
                     {/* Speaker selection / round controls */}
                     {gameState.phase === "combat" ? (
-                      <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+                      <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 shadow-sm">
                         <div className="flex items-center justify-between mb-3">
                           <div>
-                            <h4 className="text-sm font-bold text-slate-700">Choose Speaker</h4>
-                            <p className="text-xs text-slate-500">
+                            <h4 className="text-sm font-bold text-slate-700 dark:text-slate-200">Choose Speaker</h4>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
                               Round {gameState.currentRound}
                               {gameState.totalRounds ? ` / ${gameState.totalRounds}` : " / Infinity"}
                             </p>
                           </div>
-                          <div className="text-xs font-mono text-slate-500">
+                          <div className="text-xs font-mono text-slate-500 dark:text-slate-400">
                             Turn: {gameState.activeTurn === "player" ? "YOU" : "OPPONENT"}
                           </div>
                         </div>
-                        <div className="text-xs text-slate-500 mb-3">
-                          Strategy: <span className="font-medium text-slate-700">{selectedStrategy?.title || "None"}</span>
+                        <div className="text-xs text-slate-500 dark:text-slate-400 mb-3">
+                          Strategy: <span className="font-medium text-slate-700 dark:text-slate-200">{selectedStrategy?.title || "None"}</span>
                         </div>
                         <div className="flex flex-wrap gap-3">
                           {gameState.playerTeam.map((agent) => (
@@ -714,15 +810,15 @@ function App() {
                               onClick={() => handleSpeakerSelect(agent.id)}
                               className={`flex items-center gap-2 px-3 py-2 rounded-full border text-sm font-medium transition ${
                                 selectedSpeakerId === agent.id
-                                  ? "border-blue-500 bg-blue-50 text-blue-700"
-                                  : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                                  ? "border-blue-500 bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-200"
+                                  : "border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-600"
                               } ${
                                 isResolvingTurn || gameState.activeTurn !== "player" || !selectedStrategy
                                   ? "opacity-50 cursor-not-allowed"
                                   : ""
                               }`}
                             >
-                              <span className="w-7 h-7 rounded-full bg-slate-900 text-white flex items-center justify-center text-xs font-mono">
+                              <span className="w-7 h-7 rounded-full bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 flex items-center justify-center text-xs font-mono">
                                 {agent.avatarInitials}
                               </span>
                               {agent.name}
@@ -739,11 +835,11 @@ function App() {
                             Generate Preview
                           </Button>
                           {previewLoading ? (
-                            <span className="text-xs text-slate-400">Generating preview…</span>
+                            <span className="text-xs text-slate-400 dark:text-slate-500">Generating preview...</span>
                           ) : null}
                         </div>
                         {!selectedStrategy ? (
-                          <p className="mt-3 text-xs text-slate-400">
+                          <p className="mt-3 text-xs text-slate-400 dark:text-slate-500">
                             Select a Director's Choice first.
                           </p>
                         ) : null}
@@ -790,6 +886,13 @@ function App() {
           await reloadAgents();
           toggleMember(agent.id);
         }}
+      />
+      <ConcludeDebateModal
+        isOpen={isConcludeDebateOpen}
+        onClose={() => setIsConcludeDebateOpen(false)}
+        topic={gameState.topic}
+        messages={messages}
+        members={gameState.playerTeam}
       />
     </div>
   );

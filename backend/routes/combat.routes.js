@@ -1,6 +1,6 @@
 import express from "express";
 import authGuard from "../middleware/auth.js";
-import { chooseOpponentTeam, chooseOpponentTurn, judgeRound } from "../services/combat.js";
+import { chooseOpponentTeam, chooseOpponentTurn, judgeRound, finalizeDebateVerdict } from "../services/combat.js";
 
 const router = express.Router();
 
@@ -42,6 +42,32 @@ router.post("/judge", authGuard, async (req, res) => {
   } catch (error) {
     console.error("Combat judge failed:", error);
     return res.status(500).json({ message: "Failed to judge round.", error: error.message });
+  }
+});
+
+router.post("/verdict", authGuard, async (req, res) => {
+  try {
+    const {
+      topic,
+      playerTeam = [],
+      opponentTeam = [],
+      combatLog = [],
+      roundResults = [],
+      scores = {},
+    } = req.body || {};
+    if (!topic) return res.status(400).json({ message: "topic is required." });
+    const verdict = await finalizeDebateVerdict({
+      topic,
+      playerTeam,
+      opponentTeam,
+      combatLog,
+      roundResults,
+      scores,
+    });
+    return res.json({ verdict });
+  } catch (error) {
+    console.error("Combat final verdict failed:", error);
+    return res.status(500).json({ message: "Failed to finalize verdict.", error: error.message });
   }
 });
 

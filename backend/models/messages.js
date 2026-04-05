@@ -4,6 +4,15 @@ const messageSchema = new mongoose.Schema({
   id: { type: String, required: true, unique: true, trim: true },
   sessionId: { type: String, required: true, trim: true, index: true },
   topic: { type: String, required: true, trim: true, index: true },
+  sessionParticipantIds: [{ type: String, trim: true }],
+  sessionParticipants: [
+    {
+      id: { type: String, trim: true },
+      name: { type: String, trim: true },
+      role: { type: String, trim: true },
+      avatarInitials: { type: String, trim: true },
+    },
+  ],
   speakerId: { type: String, required: true, trim: true },
   speakerName: { type: String, required: true, trim: true },
   speakerInitials: { type: String, required: true, trim: true },

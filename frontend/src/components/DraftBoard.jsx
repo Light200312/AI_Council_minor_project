@@ -12,22 +12,22 @@ function DraftBoard({
 }) {
   const remainingPicks = maxSelection - selectedAgents.length;
   const isComplete = remainingPicks === 0;
-  return <div className="p-8 max-w-7xl mx-auto">
+  return <div className="p-8 max-w-7xl mx-auto text-slate-900 dark:text-slate-100">
       <div className="flex justify-between items-end mb-8">
         <div>
-          <h2 className="text-3xl font-bold text-slate-900 mb-2">
+          <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
             Draft Your Council
           </h2>
-          <p className="text-slate-500">
+          <p className="text-slate-500 dark:text-slate-400">
             Select {maxSelection} experts to represent your argument in the
             arena.
           </p>
         </div>
         <div className="text-right">
-          <div className="text-sm text-slate-500 font-mono mb-1">
+          <div className="text-sm text-slate-500 dark:text-slate-400 font-mono mb-1">
             REMAINING PICKS
           </div>
-          <div className="text-4xl font-bold text-slate-900">
+          <div className="text-4xl font-bold text-slate-900 dark:text-white">
             {remainingPicks}
           </div>
         </div>
@@ -46,13 +46,13 @@ function DraftBoard({
   )}
       </div>
 
-      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-white p-4 rounded-xl shadow-xl border border-slate-200 flex items-center gap-6 z-30">
+      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-white dark:bg-slate-800 p-4 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 flex items-center gap-6 z-30">
         <div className="flex -space-x-2">
           {selectedAgents.map((id) => {
     const agent = availableAgents.find((a) => a.id === id);
     return <div
       key={id}
-      className="w-10 h-10 rounded-full border-2 border-white bg-slate-800 text-white flex items-center justify-center font-mono text-xs font-bold"
+      className="w-10 h-10 rounded-full border-2 border-white dark:border-slate-900 bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-900 flex items-center justify-center font-mono text-xs font-bold"
       title={agent?.name}
     >
 
@@ -62,7 +62,7 @@ function DraftBoard({
           {Array(remainingPicks).fill(0).map(
     (_, i) => <div
       key={`empty-${i}`}
-      className="w-10 h-10 rounded-full border-2 border-slate-200 bg-slate-50 border-dashed flex items-center justify-center text-slate-300"
+      className="w-10 h-10 rounded-full border-2 border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 border-dashed flex items-center justify-center text-slate-300 dark:text-slate-500"
     >
 
                 ?
@@ -70,7 +70,7 @@ function DraftBoard({
   )}
         </div>
 
-        <div className="h-8 w-px bg-slate-200" />
+        <div className="h-8 w-px bg-slate-200 dark:bg-slate-600" />
 
         <Button
     size="large"

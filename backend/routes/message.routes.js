@@ -21,7 +21,18 @@ router.get("/", authGuard, async (req, res) => {
 
 router.post("/", authGuard, async (req, res) => {
   try {
-    const { sessionId, topic, speakerId, speakerName, speakerInitials, isUser, text, timestamp } = req.body || {};
+    const {
+      sessionId,
+      topic,
+      sessionParticipantIds = [],
+      sessionParticipants = [],
+      speakerId,
+      speakerName,
+      speakerInitials,
+      isUser,
+      text,
+      timestamp,
+    } = req.body || {};
     if (!speakerId || !speakerName || !speakerInitials || typeof isUser !== "boolean" || !text) {
       return res.status(400).json({ message: "Invalid message payload." });
     }
@@ -33,6 +44,19 @@ router.post("/", authGuard, async (req, res) => {
       id: `m-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       sessionId,
       topic,
+      sessionParticipantIds: Array.isArray(sessionParticipantIds)
+        ? sessionParticipantIds.map((id) => String(id).trim()).filter(Boolean)
+        : [],
+      sessionParticipants: Array.isArray(sessionParticipants)
+        ? sessionParticipants
+            .map((participant) => ({
+              id: String(participant?.id || "").trim(),
+              name: String(participant?.name || "").trim(),
+              role: String(participant?.role || "").trim(),
+              avatarInitials: String(participant?.avatarInitials || "").trim(),
+            }))
+            .filter((participant) => participant.id && participant.name)
+        : [],
       speakerId,
       speakerName,
       speakerInitials,

@@ -73,14 +73,14 @@ const Dialog = ({
     className={`
                     ${position !== "right" ? sizeClasses[size] : "w-[400px]"}
                     ${position === "right" ? "h-full" : ""}
-                    bg-white border border-gray-200 shadow-lg
+                    bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 shadow-lg
                     ${position === "center" ? "rounded-lg" : ""}
                     ${className}
                   `}
   >
 
                   {children}
-                  <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-white transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 disabled:pointer-events-none">
+                  <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-white dark:ring-offset-slate-800 transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-slate-500 focus:ring-offset-2 disabled:pointer-events-none text-slate-500 dark:text-slate-300">
                     <X className="h-4 w-4" />
                     <span className="sr-only">Close</span>
                   </DialogPrimitive.Close>
@@ -95,8 +95,8 @@ const Dialog = ({
 const DialogHeader = ({
   children,
   className = ""
-}) => <div className={`p-6 border-b border-gray-200 ${className}`}>
-    <DialogPrimitive.Title className="text-lg font-semibold">
+}) => <div className={`p-6 border-b border-gray-200 dark:border-slate-700 ${className}`}>
+    <DialogPrimitive.Title className="text-lg font-semibold text-slate-900 dark:text-slate-100">
       {children}
     </DialogPrimitive.Title>
   </div>;
@@ -110,7 +110,7 @@ const DialogFooter = ({
   children,
   className = ""
 }) => <div
-  className={`p-6 border-t border-gray-200 flex justify-end gap-4 ${className}`}
+  className={`p-6 border-t border-gray-200 dark:border-slate-700 flex justify-end gap-4 ${className}`}
 >
 
     {children}

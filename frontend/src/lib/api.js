@@ -58,6 +58,8 @@ const api = {
     request("/combat/opponent/next-turn", { method: "POST", body: payload, token }),
   combatJudgeRound: (payload, token) =>
     request("/combat/judge", { method: "POST", body: payload, token }),
+  combatFinalizeVerdict: (payload, token) =>
+    request("/combat/verdict", { method: "POST", body: payload, token }),
 };
 
 export { api, API_BASE_URL };
