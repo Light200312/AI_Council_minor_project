@@ -78,6 +78,7 @@ const useAppStore = create(
       token: "",
       user: null,
       apiRoutingMode: "openrouter_only",
+      ollamaModel: "llama3.1:latest",
       orchestratorMode: "fast",
       memoryMode: "minimal",
       agents: FALLBACK_AGENTS,
@@ -107,9 +108,9 @@ const useAppStore = create(
               opponentTeam: reconcileTeam(state.gameState.opponentTeam, nextAgents),
             },
           }));
-        } catch (_) {
-          get().signOut();
-        }
+	        } catch {
+	          get().signOut();
+	        }
       },
 
       reloadAgents: async () => {
@@ -126,9 +127,9 @@ const useAppStore = create(
               opponentTeam: reconcileTeam(state.gameState.opponentTeam, nextAgents),
             },
           }));
-        } catch (_) {
-          set({ agents: FALLBACK_AGENTS });
-        }
+	        } catch {
+	          set({ agents: FALLBACK_AGENTS });
+	        }
       },
 
       createAgent: async (payload) => {
@@ -178,13 +179,16 @@ const useAppStore = create(
       suggestAgents: async ({ topic, maxSuggestions, mode } = {}) => {
         const token = get().token;
         if (!token) throw new Error("Not authenticated.");
-        return api.suggestAgents({ topic, maxSuggestions, mode }, token);
+        return api.suggestAgents(
+          { topic, maxSuggestions, mode, ollamaModel: get().ollamaModel },
+          token
+        );
       },
 
       findAgentDraft: async ({ name, topic } = {}) => {
         const token = get().token;
         if (!token) throw new Error("Not authenticated.");
-        return api.findAgentDraft({ name, topic }, token);
+        return api.findAgentDraft({ name, topic, ollamaModel: get().ollamaModel }, token);
       },
 
       respondAsAgent: async ({ agentId, taskGoal, messages = [], outputConstraints }) => {
@@ -192,7 +196,13 @@ const useAppStore = create(
         if (!token) throw new Error("Not authenticated.");
         return api.respondAgent(
           agentId,
-          { taskGoal, messages, outputConstraints, apiRoutingMode: get().apiRoutingMode },
+          {
+            taskGoal,
+            messages,
+            outputConstraints,
+            apiRoutingMode: get().apiRoutingMode,
+            ollamaModel: get().ollamaModel,
+          },
           token
         );
       },
@@ -201,7 +211,14 @@ const useAppStore = create(
         const token = get().token;
         if (!token) throw new Error("Not authenticated.");
         return api.combatNextOpponentTurn(
-          { topic, opponentTeamIds, userArgument, strategies, difficulty },
+          {
+            topic,
+            opponentTeamIds,
+            userArgument,
+            strategies,
+            difficulty,
+            ollamaModel: get().ollamaModel,
+          },
           token
         );
       },
@@ -209,14 +226,25 @@ const useAppStore = create(
       combatJudgeRound: async ({ topic, playerArgument, opponentArgument }) => {
         const token = get().token;
         if (!token) throw new Error("Not authenticated.");
-        return api.combatJudgeRound({ topic, playerArgument, opponentArgument }, token);
+        return api.combatJudgeRound(
+          { topic, playerArgument, opponentArgument, ollamaModel: get().ollamaModel },
+          token
+        );
       },
 
       combatFinalizeVerdict: async ({ topic, playerTeam, opponentTeam, combatLog, roundResults, scores }) => {
         const token = get().token;
         if (!token) throw new Error("Not authenticated.");
         const { verdict } = await api.combatFinalizeVerdict(
-          { topic, playerTeam, opponentTeam, combatLog, roundResults, scores },
+          {
+            topic,
+            playerTeam,
+            opponentTeam,
+            combatLog,
+            roundResults,
+            scores,
+            ollamaModel: get().ollamaModel,
+          },
           token
         );
         set((state) => ({
@@ -238,6 +266,7 @@ const useAppStore = create(
           token: "",
           user: null,
           apiRoutingMode: "openrouter_only",
+          ollamaModel: "llama3.1:latest",
           orchestratorMode: "fast",
           memoryMode: "minimal",
           gameState: initialGameState(),
@@ -257,9 +286,9 @@ const useAppStore = create(
         try {
           const { messages } = await api.listMessages(token, { topic, sessionId });
           set({ messages: messages || [] });
-        } catch (_) {
-          set({ messages: [] });
-        }
+	        } catch {
+	          set({ messages: [] });
+	        }
       },
 
       loadDiscussionHistory: async () => {
@@ -302,9 +331,9 @@ const useAppStore = create(
             .sort((a, b) => b.lastTimestamp - a.lastTimestamp);
 
           set({ discussionHistory });
-        } catch (_) {
-          set({ discussionHistory: [] });
-        } finally {
+	        } catch {
+	          set({ discussionHistory: [] });
+	        } finally {
           set({ isLoadingHistory: false });
         }
       },
@@ -368,9 +397,11 @@ const useAppStore = create(
           appreciationLevel: Math.min(100, state.appreciationLevel + 2),
         }));
 
-        try {
-          await api.createMessage(userMessage, token);
-        } catch (_) {}
+	        try {
+	          await api.createMessage(userMessage, token);
+	        } catch {
+	          void 0;
+	        }
 
         set({ isLoadingReply: true });
         try {
@@ -383,6 +414,7 @@ const useAppStore = create(
               allowMetaMemory: true,
               metaMemory: { summary: "" },
               apiRoutingMode: get().apiRoutingMode,
+              ollamaModel: get().ollamaModel,
               orchestratorMode: get().orchestratorMode,
               memoryMode: get().memoryMode,
               topic: gameState.topic,
@@ -424,10 +456,10 @@ const useAppStore = create(
               ).catch(() => null)
             )
           );
-        } catch (_) {
-          set((state) => ({
-            messages: state.messages.filter((m) => m.id !== optimisticMessageId),
-            followupQuestion: "Temporary orchestration issue. Please send again.",
+	        } catch {
+	          set((state) => ({
+	            messages: state.messages.filter((m) => m.id !== optimisticMessageId),
+	            followupQuestion: "Temporary orchestration issue. Please send again.",
           }));
         } finally {
           set({ isLoadingReply: false });
@@ -435,8 +467,15 @@ const useAppStore = create(
       },
 
       setMode: (mode) =>
-        set((state) => ({
-          gameState: { ...state.gameState, mode, setupPhase: "topicSelect" },
+        set(() => ({
+          gameState: {
+            ...initialGameState(),
+            mode,
+            setupPhase: "topicSelect",
+          },
+          messages: [],
+          followupQuestion: "",
+          suggestion: "",
         })),
 
       setTopic: (topic, temperature) =>
@@ -521,14 +560,17 @@ const useAppStore = create(
                   candidateIds: remainingAgents.map((a) => a.id),
                   count: gameState.maxMembers,
                   difficulty: gameState.difficulty,
+                  ollamaModel: get().ollamaModel,
                 },
                 token
               );
               if (result?.opponentTeam?.length) {
                 opponentTeam = result.opponentTeam;
               }
-            } catch (_) {}
-          }
+	            } catch {
+	              opponentTeam = remainingAgents.slice(0, gameState.maxMembers);
+	            }
+	          }
           set({
             gameState: {
               ...gameState,
@@ -592,6 +634,7 @@ const useAppStore = create(
         })),
 
       setApiRoutingMode: (apiRoutingMode) => set({ apiRoutingMode }),
+      setOllamaModel: (ollamaModel) => set({ ollamaModel }),
       setOrchestratorMode: (orchestratorMode) => set({ orchestratorMode }),
       setMemoryMode: (memoryMode) => set({ memoryMode }),
 
@@ -616,6 +659,7 @@ const useAppStore = create(
         user: state.user,
         theme: state.theme,
         apiRoutingMode: state.apiRoutingMode,
+        ollamaModel: state.ollamaModel,
         orchestratorMode: state.orchestratorMode,
         memoryMode: state.memoryMode,
         gameState: state.gameState,

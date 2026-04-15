@@ -1,5 +1,7 @@
 import { Mic } from "lucide-react";
 
+const SPEAKING_BAR_HEIGHTS = [14, 22, 18, 26];
+
 // Arena renders the live debate table and highlights the current speaker.
 function Arena({
   playerTeam,
@@ -40,11 +42,11 @@ function Arena({
           {isSpeaking && <div className="mt-4 flex justify-center">
               <div className="flex gap-1">
                 {[1, 2, 3, 4].map(
-    (i) => <div
+    (i, index) => <div
       key={i}
       className="w-1 bg-slate-900 dark:bg-slate-100 animate-pulse"
       style={{
-        height: `${Math.random() * 20 + 10}px`,
+        height: `${SPEAKING_BAR_HEIGHTS[index]}px`,
         animationDelay: `${i * 0.1}s`
       }}
     >
@@ -59,7 +61,6 @@ function Arena({
   }
         {playerTeam.map((agent, index) => {
     const total = playerTeam.length;
-    const angle = 45 + 90 / (total - 1 || 1) * index;
     const isActive = activeSpeakerId === agent.id;
     return <div
       key={agent.id}

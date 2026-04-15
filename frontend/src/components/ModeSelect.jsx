@@ -1,4 +1,4 @@
-import { Swords, GraduationCap, Clock, Sparkles, ArrowRight, History } from "lucide-react";
+import { Swords, GraduationCap, Clock, Sparkles, ArrowRight, History, BookOpen, Briefcase, Stethoscope } from "lucide-react";
 import { Card, CardHeader, CardContent, CardFooter } from "./ui/Card";
 import { Button } from "./ui/Button";
 import { MODE_OPTIONS } from "../data/mockData";
@@ -16,6 +16,12 @@ function ModeSelect({ onSelectMode, onOpenHistory }) {
         return <Clock className="w-8 h-8 text-slate-700 dark:text-slate-300" />;
       case "Sparkles":
         return <Sparkles className="w-8 h-8 text-slate-700 dark:text-slate-300" />;
+      case "BookOpen":
+        return <BookOpen className="w-8 h-8 text-slate-700 dark:text-slate-300" />;
+      case "Briefcase":
+        return <Briefcase className="w-8 h-8 text-slate-700 dark:text-slate-300" />;
+      case "Stethoscope":
+        return <Stethoscope className="w-8 h-8 text-slate-700 dark:text-slate-300" />;
       default:
         return <Swords className="w-8 h-8 text-slate-700 dark:text-slate-300" />;
     }
@@ -31,7 +37,7 @@ function ModeSelect({ onSelectMode, onOpenHistory }) {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl w-full">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 max-w-6xl w-full">
         {MODE_OPTIONS.map(
     (mode) => <Card
       key={mode.id}

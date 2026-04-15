@@ -5,6 +5,56 @@ import { Input } from "./ui/Input";
 import { TOPICS, DEBATE_TEMPERATURES, FANTASY_TOPICS } from "../data/mockData";
 import { useAppStore } from "../store/useAppStore";
 
+const FEATURE_TOPIC_CONFIG = {
+  "learn-law": {
+    title: "Learn Indian Laws",
+    subtitle: "Choose an important law or enter any other legal topic to learn with a panel of lawmakers.",
+    customLabel: "Custom Law / Legal Topic",
+    customPlaceholder: "e.g. Fundamental Rights, Article 21, Consumer Protection Act, IPC basics...",
+    presetLabel: "Important Laws",
+    presets: [
+      "Fundamental Rights",
+      "Directive Principles of State Policy",
+      "Right to Information Act",
+      "Consumer Protection Act",
+      "Indian Penal Code Basics",
+      "Property Transfer Laws",
+      "Family Law & Marriage",
+      "Emergency Provisions"
+    ]
+  },
+  "interview-simulator": {
+    title: "Interview Simulator",
+    subtitle: "Pick an interview scenario or enter a custom focus before assembling your panel.",
+    customLabel: "Custom Interview Scenario",
+    customPlaceholder: "e.g. Product manager interview, ML engineer round, startup founder pitch...",
+    presetLabel: "Interview Scenarios",
+    presets: [
+      "Technical DSA Interview",
+      "System Design Interview",
+      "Behavioral Round",
+      "Startup Pitch",
+      "Case Study Interview",
+      "Management Group Discussion"
+    ]
+  },
+  "medical-consulting": {
+    title: "Medical Consulting",
+    subtitle: "Choose a common case or describe any symptoms before selecting the specialist panel.",
+    customLabel: "Custom Medical Case",
+    customPlaceholder: "e.g. Persistent chest pain with shortness of breath and fatigue...",
+    presetLabel: "Common Medical Cases",
+    presets: [
+      "Persistent chest pain & shortness of breath",
+      "Neurological symptoms - headaches & dizziness",
+      "Respiratory infection with high fever",
+      "Gastrointestinal issues & weight loss",
+      "Mental health - anxiety & sleep disorders",
+      "Cardiac arrhythmia & palpitations"
+    ]
+  }
+};
+
 // TopicSelect configures debate temperature and topic before member selection.
 function TopicSelect({ onSelectTopic, onBack }) {
   const mode = useAppStore((s) => s.gameState.mode);
@@ -16,13 +66,15 @@ function TopicSelect({ onSelectTopic, onBack }) {
   const [expandedInfo, setExpandedInfo] = useState(
     null
   );
-  const topicOptions = mode === "fantasy" ? FANTASY_TOPICS : TOPICS;
+  const featureConfig = FEATURE_TOPIC_CONFIG[mode];
+  const isFeatureMode = Boolean(featureConfig);
+  const topicOptions = featureConfig?.presets || (mode === "fantasy" ? FANTASY_TOPICS : TOPICS);
   const activeTopic = selectedTopic || (customTopic.trim() ? customTopic.trim() : null);
-  const canContinue = activeTopic && selectedTemp;
+  const canContinue = activeTopic && (isFeatureMode || selectedTemp);
   // Continue only when both a topic and temperature are selected.
   const handleContinue = () => {
-    if (activeTopic && selectedTemp) {
-      onSelectTopic(activeTopic, selectedTemp);
+    if (activeTopic && (isFeatureMode || selectedTemp)) {
+      onSelectTopic(activeTopic, isFeatureMode ? null : selectedTemp);
     }
   };
   return <div className="min-h-screen bg-slate-100 dark:bg-slate-900 p-8 text-slate-900 dark:text-slate-100">
@@ -39,17 +91,17 @@ function TopicSelect({ onSelectTopic, onBack }) {
 
         <div className="text-center mb-10">
           <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
-            {mode === "fantasy" ? "Configure Your Fantasy Session" : "Configure Your Debate"}
+            {featureConfig?.title || (mode === "fantasy" ? "Configure Your Fantasy Session" : "Configure Your Debate")}
           </h1>
           <p className="text-slate-500 dark:text-slate-400 font-mono">
-            Set the topic and temperature before entering the council
+            {featureConfig?.subtitle || "Set the topic and temperature before entering the council"}
           </p>
         </div>
 
         {
     /* ── STEP 1: Debate Temperature ── */
   }
-        <div className="mb-10">
+        {!isFeatureMode && <div className="mb-10">
           <div className="flex items-center gap-2 mb-4">
             <span className="w-6 h-6 rounded-full bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 text-xs font-bold font-mono flex items-center justify-center">
               1
@@ -133,7 +185,7 @@ function TopicSelect({ onSelectTopic, onBack }) {
                   </div>
                 </div>;
   })()}
-        </div>
+        </div>}
 
         {
     /* ── STEP 2: Topic ── */
@@ -141,10 +193,10 @@ function TopicSelect({ onSelectTopic, onBack }) {
         <div className="mb-10">
           <div className="flex items-center gap-2 mb-4">
             <span className="w-6 h-6 rounded-full bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 text-xs font-bold font-mono flex items-center justify-center">
-              2
+              {isFeatureMode ? 1 : 2}
             </span>
             <h2 className="text-base font-bold text-slate-900 dark:text-white uppercase tracking-wider">
-              {mode === "fantasy" ? "Universe / Series" : "Debate Topic"}
+              {featureConfig?.presetLabel || (mode === "fantasy" ? "Universe / Series" : "Debate Topic")}
             </h2>
             {activeTopic && <span className="ml-auto text-xs font-mono text-green-600 flex items-center gap-1">
                 <Check className="w-3 h-3" /> Selected
@@ -161,21 +213,21 @@ function TopicSelect({ onSelectTopic, onBack }) {
             <div className="flex items-center gap-2 mb-3">
               <PenLine className="w-4 h-4 text-slate-500 dark:text-slate-400" />
               <span className="text-sm font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wider">
-                Custom Topic
+                {featureConfig?.customLabel || "Custom Topic"}
               </span>
             </div>
             <Input
-    placeholder={mode === "fantasy" ? "e.g. The Stormlight Archive" : "e.g. Is consciousness computable?"}
+    placeholder={featureConfig?.customPlaceholder || (mode === "fantasy" ? "e.g. The Stormlight Archive" : "e.g. Is consciousness computable?")}
     value={customTopic}
-    onChange={(e) => {
-      setCustomTopic(e.target.value);
-      if (e.target.value.trim()) setSelectedTopic(null);
-    }}
-    onKeyDown={(e) => {
-      if (e.key === "Enter" && customTopic.trim() && selectedTemp)
-        handleContinue();
-    }}
-  />
+	    onChange={(e) => {
+	      setCustomTopic(e.target.value);
+	      if (e.target.value.trim()) setSelectedTopic(null);
+	    }}
+	    onKeyDown={(e) => {
+	      if (e.key === "Enter" && customTopic.trim() && (isFeatureMode || selectedTemp))
+	        handleContinue();
+	    }}
+	  />
 
           </div>
 
@@ -185,7 +237,7 @@ function TopicSelect({ onSelectTopic, onBack }) {
           <div className="flex items-center gap-4 mb-6">
             <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
             <span className="text-xs font-mono text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-              {mode === "fantasy" ? "Or choose a universe" : "Or choose a preset"}
+              {featureConfig ? `Or choose from ${featureConfig.presetLabel.toLowerCase()}` : mode === "fantasy" ? "Or choose a universe" : "Or choose a preset"}
             </span>
             <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
           </div>
@@ -227,21 +279,29 @@ function TopicSelect({ onSelectTopic, onBack }) {
     className={`sticky bottom-6 transition-all ${canContinue ? "opacity-100" : "opacity-50 pointer-events-none"}`}
   >
 
-          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 shadow-md flex items-center justify-between">
-            <div className="text-sm text-slate-600 dark:text-slate-300">
-              {selectedTemp && activeTopic ? <span className="font-mono">
-                  <span className="font-bold text-slate-900 dark:text-white">
-                    {DEBATE_TEMPERATURES.find((t) => t.id === selectedTemp)?.emoji}{" "}
-                    {DEBATE_TEMPERATURES.find((t) => t.id === selectedTemp)?.label}
-                  </span>{" "}
-                  ·{" "}
-                  <span className="text-slate-500 dark:text-slate-400 truncate max-w-xs inline-block align-bottom">
-                    {activeTopic}
-                  </span>
-                </span> : <span className="text-slate-400 dark:text-slate-500 font-mono">
-                  {!selectedTemp && !activeTopic ? "Select temperature and topic to continue" : !selectedTemp ? "Select a temperature to continue" : "Select a topic to continue"}
-                </span>}
-            </div>
+	          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 shadow-md flex items-center justify-between">
+	            <div className="text-sm text-slate-600 dark:text-slate-300">
+	              {(isFeatureMode ? activeTopic : selectedTemp && activeTopic) ? <span className="font-mono">
+	                    {!isFeatureMode ? (
+		                  <span className="font-bold text-slate-900 dark:text-white">
+		                    {DEBATE_TEMPERATURES.find((t) => t.id === selectedTemp)?.emoji}{" "}
+		                    {DEBATE_TEMPERATURES.find((t) => t.id === selectedTemp)?.label}
+		                  </span>
+	                    ) : null}
+	                    {!isFeatureMode ? <>·{" "}</> : null}
+		                  <span className="text-slate-500 dark:text-slate-400 truncate max-w-xs inline-block align-bottom">
+	                    {activeTopic}
+	                  </span>
+	                </span> : <span className="text-slate-400 dark:text-slate-500 font-mono">
+	                  {isFeatureMode
+                      ? "Select or enter a topic to continue"
+                      : !selectedTemp && !activeTopic
+                        ? "Select temperature and topic to continue"
+                        : !selectedTemp
+                          ? "Select a temperature to continue"
+                          : "Select a topic to continue"}
+	                </span>}
+	            </div>
             <Button
     size="medium"
     disabled={!canContinue}
@@ -249,8 +309,8 @@ function TopicSelect({ onSelectTopic, onBack }) {
     onClick={handleContinue}
   >
 
-              Select Members
-            </Button>
+	              Select Members
+	            </Button>
           </div>
         </div>
       </div>

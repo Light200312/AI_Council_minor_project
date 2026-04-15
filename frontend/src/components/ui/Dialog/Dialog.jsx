@@ -1,6 +1,6 @@
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion as Motion, AnimatePresence } from "framer-motion";
 
 // Dialog wraps Radix primitives with consistent sizing, positioning, and motion.
 const Dialog = ({
@@ -32,7 +32,7 @@ const Dialog = ({
       <AnimatePresence>
         {isOpen && <DialogPrimitive.Portal forceMount>
             <DialogPrimitive.Overlay asChild>
-              <motion.div
+	              <Motion.div
     initial={{
       opacity: 0
     }}
@@ -43,11 +43,11 @@ const Dialog = ({
       opacity: 0
     }}
     className={`fixed inset-0 z-50 ${backdropClasses[backdrop]}`}
-  />
+	  />
 
-            </DialogPrimitive.Overlay>
-            <DialogPrimitive.Content asChild aria-describedby={undefined}>
-              <motion.div
+	            </DialogPrimitive.Overlay>
+	            <DialogPrimitive.Content asChild aria-describedby={undefined}>
+	              <Motion.div
     initial={position === "right" ? {
       x: "100%"
     } : {
@@ -85,8 +85,8 @@ const Dialog = ({
                     <span className="sr-only">Close</span>
                   </DialogPrimitive.Close>
                 </div>
-              </motion.div>
-            </DialogPrimitive.Content>
+	              </Motion.div>
+	            </DialogPrimitive.Content>
           </DialogPrimitive.Portal>}
       </AnimatePresence>
     </DialogPrimitive.Root>;

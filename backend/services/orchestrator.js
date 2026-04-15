@@ -221,6 +221,7 @@ async function selectNextAgent({
   messages,
   candidates,
   lastSpeakerId = "",
+  ollamaModel = "",
 }) {
   const candidateProfiles = buildCandidateProfiles(candidates, messages);
   const recentSpeakerIds = getRecentSpeakerIds(messages, candidates, Math.min(3, candidates.length));
@@ -253,7 +254,7 @@ Rules:
 - return strict JSON: {"agentId":"<id>","reason":"<short reason>"}
 `;
 
-  const raw = await callOrchestratorLLM({ system, prompt, temperature: 0.2 });
+  const raw = await callOrchestratorLLM({ system, prompt, temperature: 0.2, ollamaModel });
   try {
     const parsed = JSON.parse(raw);
     const selectedAgentId = String(parsed.agentId || "");
@@ -286,6 +287,7 @@ async function orchestrateTask({
   allowMetaMemory = false, // retained for API compatibility
   metaMemory = null, // retained for API compatibility
   apiRoutingMode = "persona",
+  ollamaModel = "",
   orchestratorMode = "fast",
   memoryMode = "minimal",
   topic = "",
@@ -321,6 +323,7 @@ async function orchestrateTask({
       messages,
       candidates,
       lastSpeakerId,
+      ollamaModel,
     });
   } else {
     const rotated = pickNextByRotation(candidates, lastSpeakerId);
@@ -346,6 +349,7 @@ async function orchestrateTask({
       outputConstraints:
         "Teach the user directly. Evaluate the user's last point, correct mistakes clearly, praise valid reasoning, and give one concrete improvement step. Keep it concise.",
       apiRoutingMode,
+      ollamaModel,
       memoryMode,
       topic: scope.topic,
       sessionId: scope.sessionId,
@@ -373,6 +377,7 @@ async function orchestrateTask({
       messages,
       candidates,
       lastSpeakerId: String(selected.id),
+      ollamaModel,
     });
     upcomingAgent =
       candidates.find((c) => String(c.id) === String(upcoming.agentId)) ||
@@ -388,7 +393,7 @@ async function orchestrateTask({
   trace.push({
     iteration: 1,
     selectedAgentId: String(selected.id),
-    selectedAgentModel: resolveAgentModelConfig(selected.id, apiRoutingMode),
+    selectedAgentModel: resolveAgentModelConfig(selected.id, apiRoutingMode, ollamaModel),
     selectionReason: nextAgent.reason,
     confidence: 0.7,
     candidateProfiles,

@@ -1,10 +1,11 @@
 import axios from "axios";
 
+import { resolveOllamaModel } from "./agentModelRegistry.js";
+
 const OLLAMA_BASE_URL =
   process.env.OLLAMA_BASE_URL ||
-  process.env.OLLAMA_API_KEY ||
   "http://localhost:11434";
-const OLLAMA_ORCHESTRATOR_MODEL = process.env.OLLAMA_MODEL || "qwen2.5:latest";
+const OLLAMA_ORCHESTRATOR_MODEL = resolveOllamaModel();
 const OLLAMA_TIMEOUT_MS = Number(process.env.OLLAMA_TIMEOUT_MS || 60000);
 const ORCHESTRATOR_TIMEOUT_MS = Number(process.env.ORCHESTRATOR_TIMEOUT_MS || 15000);
 const ORCHESTRATOR_PROVIDER =
@@ -206,7 +207,7 @@ async function callAgentLLM({ provider, model, system, prompt, temperature = 0.4
             model:
               provider === "ollama"
                 ? requestedModel
-                : process.env.OLLAMA_AGENT_MODEL || process.env.OLLAMA_MODEL || OLLAMA_ORCHESTRATOR_MODEL,
+                : process.env.OLLAMA_MODEL || process.env.OLLAMA_MODEL || OLLAMA_ORCHESTRATOR_MODEL,
             temperature,
           });
       }
@@ -222,7 +223,7 @@ async function callAgentLLM({ provider, model, system, prompt, temperature = 0.4
   return "I could not reach the model right now. Please continue and I will respond on the next turn.";
 }
 
-async function callOrchestratorLLM({ system, prompt, temperature = 0.4 }) {
+async function callOrchestratorLLM({ system, prompt, temperature = 0.4, ollamaModel = "" }) {
   const strictProviderCandidates = getStrictProviderList(process.env.ORCHESTRATOR_PROVIDER);
   const providerCandidates = strictProviderCandidates.length
     ? strictProviderCandidates
@@ -263,7 +264,7 @@ async function callOrchestratorLLM({ system, prompt, temperature = 0.4 }) {
           return await callOllama({
             system,
             prompt,
-            model: ORCHESTRATOR_MODEL || OLLAMA_ORCHESTRATOR_MODEL,
+            model: ORCHESTRATOR_MODEL || resolveOllamaModel(ollamaModel) || OLLAMA_ORCHESTRATOR_MODEL,
             temperature,
             timeoutMs: ORCHESTRATOR_TIMEOUT_MS,
           });

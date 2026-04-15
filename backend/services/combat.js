@@ -63,6 +63,7 @@ async function chooseOpponentTeam({
   candidateIds = [],
   count = 3,
   difficulty = "standard",
+  ollamaModel = "",
 }) {
   const safeCount = clampNumber(count, { min: 1, max: 8, fallback: 3 });
   const candidates = await Agent.find(candidateIds.length ? { id: { $in: candidateIds } } : {}).lean();
@@ -88,7 +89,7 @@ ${roster.map((r) => `${r.id} | ${r.name} | ${r.role} | ${r.era}`).join("\n")}
 
 Return JSON: {"ids":["id1","id2"],"reason":"short reason"}`;
 
-  const raw = await callOrchestratorLLM({ system, prompt, temperature: 0.2 });
+  const raw = await callOrchestratorLLM({ system, prompt, temperature: 0.2, ollamaModel });
   const jsonText = extractFirstJsonObject(raw);
   try {
     const parsed = JSON.parse(jsonText || "{}");
@@ -118,6 +119,7 @@ async function chooseOpponentTurn({
   userArgument = "",
   strategies = [],
   difficulty = "standard",
+  ollamaModel = "",
 }) {
   const candidates = await Agent.find({ id: { $in: opponentTeamIds } }).lean();
   if (!candidates.length) throw new Error("No opponent team available.");
@@ -135,7 +137,7 @@ ${strategies.map((s) => `${s.type} | ${s.title} | ${s.description}`).join("\n")}
 
 Return JSON: {"agentId":"<id>","strategyType":"<type>","reason":"short reason"}`;
 
-  const raw = await callOrchestratorLLM({ system, prompt, temperature: 0.3 });
+  const raw = await callOrchestratorLLM({ system, prompt, temperature: 0.3, ollamaModel });
   const jsonText = extractFirstJsonObject(raw);
   try {
     const parsed = JSON.parse(jsonText || "{}");
@@ -157,7 +159,7 @@ Return JSON: {"agentId":"<id>","strategyType":"<type>","reason":"short reason"}`
   };
 }
 
-async function judgeRound({ topic, playerArgument, opponentArgument }) {
+async function judgeRound({ topic, playerArgument, opponentArgument, ollamaModel = "" }) {
   const system = "You are a neutral judge for a debate. Return strict JSON only.";
   const prompt = `Topic: ${topic}
 Player argument: ${playerArgument}
@@ -166,7 +168,7 @@ Opponent argument: ${opponentArgument}
 Return JSON:
 {"winner":"player|opponent|tie","playerScore":0-100,"opponentScore":0-100,"confidence":0-1,"probabilities":{"player":0-1,"opponent":0-1},"reasoning":"short reasoning"}`;
 
-  const raw = await callOrchestratorLLM({ system, prompt, temperature: 0.2 });
+  const raw = await callOrchestratorLLM({ system, prompt, temperature: 0.2, ollamaModel });
   const jsonText = extractFirstJsonObject(raw);
   try {
     const parsed = JSON.parse(jsonText || "{}");
@@ -209,6 +211,7 @@ async function finalizeDebateVerdict({
   combatLog = [],
   roundResults = [],
   scores = {},
+  ollamaModel = "",
 }) {
   const { playerTotal, opponentTotal } = computeAggregateScores(roundResults, scores);
   const playerNames = playerTeam.map((agent) => agent?.name).filter(Boolean);
@@ -241,7 +244,7 @@ Return JSON:
   "reasoning":"short judge explanation"
 }`;
 
-  const raw = await callOrchestratorLLM({ system, prompt, temperature: 0.2 });
+  const raw = await callOrchestratorLLM({ system, prompt, temperature: 0.2, ollamaModel });
   const jsonText = extractFirstJsonObject(raw);
   try {
     const parsed = JSON.parse(jsonText || "{}");

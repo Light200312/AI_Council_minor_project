@@ -14,6 +14,7 @@ async function runAgentStep({
   outputConstraints,
   temperature = 0.5,
   apiRoutingMode = "persona",
+  ollamaModel = "",
   memoryMode = "minimal",
   topic = "",
   sessionId = "",
@@ -41,7 +42,7 @@ async function runAgentStep({
   });
   const prompt = buildAgentPrompt({ agent, taskGoal, contextSummary, outputConstraints });
 
-  const modelConfig = resolveAgentModelConfig(agent.id, apiRoutingMode);
+  const modelConfig = resolveAgentModelConfig(agent.id, apiRoutingMode, ollamaModel);
   const text = await callAgentLLM({
     provider: modelConfig.provider,
     model: modelConfig.model,

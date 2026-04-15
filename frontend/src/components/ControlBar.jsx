@@ -24,6 +24,8 @@ function ControlBar({ exportVerdict, isExportingVerdict = false, onConcludeDebat
   const combatLog = useAppStore((state) => state.gameState.combatLog);
   const apiRoutingMode = useAppStore((state) => state.apiRoutingMode);
   const setApiRoutingMode = useAppStore((state) => state.setApiRoutingMode);
+  const ollamaModel = useAppStore((state) => state.ollamaModel);
+  const setOllamaModel = useAppStore((state) => state.setOllamaModel);
   const orchestratorMode = useAppStore((state) => state.orchestratorMode);
   const setOrchestratorMode = useAppStore((state) => state.setOrchestratorMode);
   const memoryMode = useAppStore((state) => state.memoryMode);
@@ -37,11 +39,17 @@ function ControlBar({ exportVerdict, isExportingVerdict = false, onConcludeDebat
     { id: "dynamic", label: "Dynamic" },
     { id: "fast", label: "Fast" },
   ];
+  const ollamaModels = [
+    { id: "llama3.1:latest", label: "Llama 3.1 Latest" },
+    { id: "qwen2.5:latest", label: "Qwen 2.5 Latest" },
+  ];
   const memoryModes = [
     { id: "minimal", label: "Memory: Minimal" },
     { id: "rich", label: "Memory: Rich" },
   ];
   const selectedApiMode = apiModes.find((mode) => mode.id === apiRoutingMode)?.label || "Per Personality";
+  const selectedOllamaModel =
+    ollamaModels.find((model) => model.id === ollamaModel)?.label || "Llama 3.1 Latest";
   const selectedOrchestratorMode =
     orchestrationModes.find((mode) => mode.id === orchestratorMode)?.label || "Fast";
   const selectedMemoryMode = memoryModes.find((mode) => mode.id === memoryMode)?.label || "Memory: Minimal";
@@ -137,7 +145,7 @@ function ControlBar({ exportVerdict, isExportingVerdict = false, onConcludeDebat
               Settings
             </span>
             <span className="block text-sm font-medium text-slate-900 dark:text-slate-100">
-              {selectedApiMode} • {selectedOrchestratorMode} • {selectedMemoryMode.replace("Memory: ", "")}
+              {selectedApiMode} • {selectedOllamaModel} • {selectedOrchestratorMode} • {selectedMemoryMode.replace("Memory: ", "")}
             </span>
           </span>
         </button>
@@ -199,6 +207,12 @@ function ControlBar({ exportVerdict, isExportingVerdict = false, onConcludeDebat
             options: apiModes,
             selectedValue: apiRoutingMode,
             onChange: setApiRoutingMode,
+          })}
+          {renderOptionGroup({
+            title: "Ollama Model",
+            options: ollamaModels,
+            selectedValue: ollamaModel,
+            onChange: setOllamaModel,
           })}
           {renderOptionGroup({
             title: "Orchestrator",

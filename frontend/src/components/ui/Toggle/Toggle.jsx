@@ -105,17 +105,17 @@ const Toggle = forwardRef(
       size,
       disabled
     });
-    const renderToggle = <button
-      ref={ref}
-      role="switch"
+	    const renderToggle = <button
+	      ref={ref}
+	      role="switch"
       aria-checked={currentChecked}
       onClick={handleClick}
-      onKeyDown={handleKeyDown}
-      disabled={disabled}
-      className={toggleClasses}
-      tabIndex={0}
-      {...props}
-    >
+	      onKeyDown={handleKeyDown}
+	      disabled={disabled}
+	      className={`${toggleClasses} ${className || ""}`.trim()}
+	      tabIndex={0}
+	      {...props}
+	    >
 
         <span
       className={`absolute inset-0 ${currentChecked ? "bg-gray-600" : "bg-gray-300"} rounded-full transition-colors`}

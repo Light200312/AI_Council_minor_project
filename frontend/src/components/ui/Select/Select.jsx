@@ -137,12 +137,13 @@ const Select = ({
 
         </div>
       </div>
-      {error && <p className="mt-1 text-sm text-gray-700 dark:text-red-300">{error}</p>}
-      {open && !disabled && <FloatingFocusManager context={context} modal={false}>
-          <div
-    ref={refs.setFloating}
-    style={floatingStyles}
-    {...getFloatingProps()}
+	      {error && <p className="mt-1 text-sm text-gray-700 dark:text-red-300">{error}</p>}
+	      {open && !disabled && <FloatingFocusManager context={context} modal={false}>
+	          <div
+    // eslint-disable-next-line react-hooks/refs
+	    ref={refs.setFloating}
+	    style={floatingStyles}
+	    {...getFloatingProps()}
     className="bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md shadow-lg z-50 text-slate-900 dark:text-slate-100"
   >
 

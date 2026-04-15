@@ -102,8 +102,8 @@ function PersonaEditor({ isOpen, onClose, onCreated }) {
     if (!isOpen) return;
     setError("");
     setSuccess("");
-    setTopic((t) => (t ? t : topicFromSession || ""));
-    setFinderTopic((t) => (t ? t : topicFromSession || ""));
+    setTopic(topicFromSession || "");
+    setFinderTopic(topicFromSession || "");
   }, [isOpen, topicFromSession]);
 
   const canSuggest = useMemo(() => Boolean(String(topic || "").trim()), [topic]);
@@ -166,6 +166,8 @@ function PersonaEditor({ isOpen, onClose, onCreated }) {
 
   const closeAndReset = () => {
     setTab("suggest");
+    setTopic(topicFromSession || "");
+    setFinderTopic(topicFromSession || "");
     setAnalysis(null);
     setSuggestions([]);
     setFinderDraft(null);

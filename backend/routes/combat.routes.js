@@ -6,9 +6,9 @@ const router = express.Router();
 
 router.post("/opponent/select-team", authGuard, async (req, res) => {
   try {
-    const { topic, candidateIds = [], count = 3, difficulty = "standard" } = req.body || {};
+    const { topic, candidateIds = [], count = 3, difficulty = "standard", ollamaModel = "" } = req.body || {};
     if (!topic) return res.status(400).json({ message: "topic is required." });
-    const result = await chooseOpponentTeam({ topic, candidateIds, count, difficulty });
+    const result = await chooseOpponentTeam({ topic, candidateIds, count, difficulty, ollamaModel });
     return res.json(result);
   } catch (error) {
     console.error("Combat select-team failed:", error);
@@ -18,11 +18,11 @@ router.post("/opponent/select-team", authGuard, async (req, res) => {
 
 router.post("/opponent/next-turn", authGuard, async (req, res) => {
   try {
-    const { topic, opponentTeamIds = [], userArgument = "", strategies = [], difficulty = "standard" } = req.body || {};
+    const { topic, opponentTeamIds = [], userArgument = "", strategies = [], difficulty = "standard", ollamaModel = "" } = req.body || {};
     if (!topic) return res.status(400).json({ message: "topic is required." });
     if (!opponentTeamIds.length) return res.status(400).json({ message: "opponentTeamIds is required." });
     if (!strategies.length) return res.status(400).json({ message: "strategies is required." });
-    const result = await chooseOpponentTurn({ topic, opponentTeamIds, userArgument, strategies, difficulty });
+    const result = await chooseOpponentTurn({ topic, opponentTeamIds, userArgument, strategies, difficulty, ollamaModel });
     return res.json(result);
   } catch (error) {
     console.error("Combat next-turn failed:", error);
@@ -32,12 +32,12 @@ router.post("/opponent/next-turn", authGuard, async (req, res) => {
 
 router.post("/judge", authGuard, async (req, res) => {
   try {
-    const { topic, playerArgument, opponentArgument } = req.body || {};
+    const { topic, playerArgument, opponentArgument, ollamaModel = "" } = req.body || {};
     if (!topic) return res.status(400).json({ message: "topic is required." });
     if (!playerArgument || !opponentArgument) {
       return res.status(400).json({ message: "playerArgument and opponentArgument are required." });
     }
-    const result = await judgeRound({ topic, playerArgument, opponentArgument });
+    const result = await judgeRound({ topic, playerArgument, opponentArgument, ollamaModel });
     return res.json(result);
   } catch (error) {
     console.error("Combat judge failed:", error);
@@ -54,6 +54,7 @@ router.post("/verdict", authGuard, async (req, res) => {
       combatLog = [],
       roundResults = [],
       scores = {},
+      ollamaModel = "",
     } = req.body || {};
     if (!topic) return res.status(400).json({ message: "topic is required." });
     const verdict = await finalizeDebateVerdict({
@@ -63,6 +64,7 @@ router.post("/verdict", authGuard, async (req, res) => {
       combatLog,
       roundResults,
       scores,
+      ollamaModel,
     });
     return res.json({ verdict });
   } catch (error) {

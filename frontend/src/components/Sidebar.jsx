@@ -8,7 +8,10 @@ import {
   RotateCcw,
   History,
   Moon,
-  Sun
+  Sun,
+  BookOpen,
+  Briefcase,
+  Stethoscope
 } from "lucide-react";
 import { DEBATE_TEMPERATURES } from "../data/mockData";
 
@@ -46,10 +49,34 @@ const NAV_ITEMS = [
   }
 ];
 
+const FEATURE_ITEMS = [
+  {
+    id: "learn-law",
+    label: "Learn Indian Laws",
+    icon: BookOpen,
+    description: "Build a legal expert panel for constitutional and law topics."
+  },
+  {
+    id: "interview-simulator",
+    label: "Interview Simulator",
+    icon: Briefcase,
+    description: "Practice scenarios with interviewers, managers, and HR."
+  },
+  {
+    id: "medical-consulting",
+    label: "Medical Consulting",
+    icon: Stethoscope,
+    description: "Assemble a doctor panel for collaborative case discussions."
+  }
+];
+
+
+
 // Render left rail navigation plus current session summary.
 function Sidebar({
   activeTab,
   onTabChange,
+  onFeatureSelect,
   currentMode,
   currentTopic,
   currentMembers,
@@ -209,6 +236,31 @@ function Sidebar({
 
                   <Icon className="w-5 h-5" />
                   {item.label}
+                </button>;
+  })}
+          </div>
+        </div>
+
+        {
+    /* Features Section */
+  }
+        <div>
+          <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-2 px-1">
+            Features
+          </span>
+          <div className="space-y-1">
+            {FEATURE_ITEMS.map((item) => {
+    const Icon = item.icon;
+    const isActive = activeTab === item.id;
+    return <button
+      key={item.id}
+      onClick={() => onFeatureSelect && onFeatureSelect(item.id)}
+      className={`w-full flex items-center gap-3 px-4 py-3 rounded-md text-sm font-medium transition-colors group ${isActive ? "bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white" : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"}`}
+      title={item.description}
+    >
+
+                  <Icon className="w-5 h-5" />
+                  <span className="flex-1 text-left">{item.label}</span>
                 </button>;
   })}
           </div>

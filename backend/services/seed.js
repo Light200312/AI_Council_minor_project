@@ -1,6 +1,7 @@
 import Agent from "../models/agent.js";
 import Message from "../models/messages.js";
 import { AGENTS, MENTOR_MOCK_MESSAGES } from "../data/mockData.js";
+import { world_leaders, business_men, historians, medical_specialists, interview_panel, law_makers } from "../PreBuildAgents.js";
 
 function enrichDescription(agent) {
   const methodsByRole = {
@@ -21,7 +22,22 @@ function enrichDescription(agent) {
 }
 
 async function seedDatabase() {
-  const enrichedAgents = AGENTS.map((agent) => ({ ...agent, description: enrichDescription(agent) }));
+  const prebuiltAgents = [
+    ...world_leaders,
+    ...business_men,
+    ...historians,
+    ...medical_specialists,
+    ...interview_panel,
+    ...law_makers,
+  ];
+  const mergedAgents = [...AGENTS, ...prebuiltAgents].reduce((acc, agent) => {
+    acc.set(agent.id, agent);
+    return acc;
+  }, new Map());
+  const enrichedAgents = Array.from(mergedAgents.values()).map((agent) => ({
+    ...agent,
+    description: enrichDescription(agent),
+  }));
 
   await Promise.all(
     enrichedAgents.map((agent) =>
@@ -37,4 +53,3 @@ async function seedDatabase() {
 }
 
 export { seedDatabase };
-

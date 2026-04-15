@@ -15,6 +15,7 @@ coverage/
 dependency-report.html
 dependency-graph.json
 dependency-graph.dot
+dependency-graph.svg
 
 # Logs
 *.log
@@ -27,3 +28,6 @@ pnpm-debug.log*
 .DS_Store
 .idea/
 .vscode/
+
+# Reference projects
+ref_vr_project/

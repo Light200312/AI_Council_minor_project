@@ -196,6 +196,27 @@ const MODE_OPTIONS = [
     description: "Discuss topics with legendary fictional characters and lore.",
     icon: "Sparkles",
     features: ["Fictional Councils", "Lore-Accurate Voices", "Fantasy-Only Roster"]
+  },
+  {
+    id: "learn-law",
+    title: "Learn Indian Laws",
+    description: "Study important laws with constitutional experts and legal thinkers.",
+    icon: "BookOpen",
+    features: ["Important Laws", "Expert Lawmakers", "Guided Legal Discussion"]
+  },
+  {
+    id: "interview-simulator",
+    title: "Interview Simulator",
+    description: "Practice real interview scenarios with a tailored panel of interviewers.",
+    icon: "Briefcase",
+    features: ["Preset Scenarios", "Panel Selection", "Group Discussion Feedback"]
+  },
+  {
+    id: "medical-consulting",
+    title: "Medical Consulting",
+    description: "Discuss patient cases with a council of medical specialists.",
+    icon: "Stethoscope",
+    features: ["Case-Based Learning", "Specialist Panel", "Collaborative Analysis"]
   }
 ];
 // Debate temperature presets that tune tone and intent.

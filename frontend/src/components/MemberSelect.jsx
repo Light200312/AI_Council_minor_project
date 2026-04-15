@@ -24,6 +24,24 @@ function MemberSelect({
   const updateAgent = useAppStore((s) => s.updateAgent);
   const deleteAgent = useAppStore((s) => s.deleteAgent);
   const mode = useAppStore((s) => s.gameState.mode);
+  const copyByMode = {
+    "learn-law": {
+      title: "Select Lawmakers",
+      subtitle: "Choose the legal experts you want in this discussion",
+      searchPlaceholder: "Search lawmakers by name, role, era..."
+    },
+    "interview-simulator": {
+      title: "Select Interview Panel",
+      subtitle: "Choose the interviewers for this session",
+      searchPlaceholder: "Search interviewers by name, role, expertise..."
+    },
+    "medical-consulting": {
+      title: "Select Medical Specialists",
+      subtitle: "Choose the specialists for this consultation",
+      searchPlaceholder: "Search specialists by name, role, expertise..."
+    }
+  };
+  const modeCopy = copyByMode[mode];
   const [searchQuery, setSearchQuery] = useState("");
   const [domainFilter, setDomainFilter] = useState("all");
   const [editingAgent, setEditingAgent] = useState(null);
@@ -184,10 +202,10 @@ function MemberSelect({
 
           <div className="text-right">
             <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-              Select Council Members
+              {modeCopy?.title || "Select Council Members"}
             </h1>
             <p className="text-slate-500 dark:text-slate-400 font-mono">
-              {remaining > 0 ? `Select ${remaining} more members` : "Selection Complete"}
+              {modeCopy?.subtitle || (remaining > 0 ? `Select ${remaining} more members` : "Selection Complete")}
             </p>
           </div>
         </div>
@@ -195,7 +213,7 @@ function MemberSelect({
         <div className="mb-4 flex items-end justify-between gap-4">
           <div className="max-w-md w-full">
             <Input
-              placeholder="Search experts by name, role, era..."
+              placeholder={modeCopy?.searchPlaceholder || "Search experts by name, role, era..."}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               startAdornment={<Search className="w-4 h-4 text-slate-400" />}

@@ -9,6 +9,7 @@ import agentRoutes from "./routes/agent.routes.js";
 import messageRoutes from "./routes/message.routes.js";
 import orchestratorRoutes from "./routes/orchestrator.routes.js";
 import combatRoutes from "./routes/combat.routes.js";
+import featuresRoutes from "./routes/features.routes.js";
 
 dotenv.config();
 
@@ -41,6 +42,7 @@ app.use("/api/agents", agentRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/orchestrator", orchestratorRoutes);
 app.use("/api/combat", combatRoutes);
+app.use("/api/features", featuresRoutes);
 
 // Connect DB, seed default data, then start listening.
 connectDB()
