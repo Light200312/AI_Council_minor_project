@@ -15,49 +15,12 @@ import { ConcludeDebateModal } from "./components/ConcludeDebateModal";
 import { DiscussionHistory } from "./components/DiscussionHistory";
 import { AuthPage } from "./components/AuthPage";
 import { Button } from "./components/ui/Button";
+import LearnLawPage from "./components/LearnLawPage";
+import InterviewSimulatorPage from "./components/InterviewSimulatorPage";
+import MedicalConsultingPage from "./components/MedicalConsultingPage";
 import { STRATEGIES, MOCK_HEATMAP } from "./data/mockData";
-import { interview_panel, law_makers, medical_specialists } from "./data/PreBuildAgents";
 import { useAppStore } from "./store/useAppStore";
 import { downloadPdf } from "./lib/pdf";
-
-const FEATURE_MODES = ["learn-law", "interview-simulator", "medical-consulting"];
-
-function dedupeAgentsById(agentList = []) {
-  const seen = new Map();
-  agentList.forEach((agent) => {
-    if (agent?.id) seen.set(agent.id, agent);
-  });
-  return Array.from(seen.values());
-}
-
-function getFeatureAgentPool(mode, agents = []) {
-  if (mode === "learn-law") {
-    return dedupeAgentsById([
-      ...law_makers,
-      ...agents.filter((agent) => String(agent?.domain || "").toLowerCase() === "law"),
-    ]);
-  }
-
-  if (mode === "interview-simulator") {
-    return dedupeAgentsById([
-      ...interview_panel,
-      ...agents.filter((agent) =>
-        ["technology", "tech", "human resources"].includes(String(agent?.domain || "").toLowerCase())
-      ),
-    ]);
-  }
-
-  if (mode === "medical-consulting") {
-    return dedupeAgentsById([
-      ...medical_specialists,
-      ...agents.filter((agent) =>
-        ["medicine", "medical", "science"].includes(String(agent?.domain || "").toLowerCase())
-      ),
-    ]);
-  }
-
-  return agents;
-}
 
 function App() {
   // Global app state + actions from the central store.
@@ -121,10 +84,6 @@ function App() {
   const opponentRowRefs = useRef([]);
   const [rowHeights, setRowHeights] = useState([]);
   const [showSetupHistory, setShowSetupHistory] = useState(false);
-  const setupAgents = useMemo(
-    () => (FEATURE_MODES.includes(gameState.mode) ? getFeatureAgentPool(gameState.mode, agents) : agents),
-    [gameState.mode, agents]
-  );
 
   // Bootstrap persisted session on first load.
   useEffect(() => {
@@ -410,63 +369,39 @@ function App() {
 
   // Switch left sidebar tab and optionally load history.
   const handleTabChange = (tabId) => {
-    // Check if this is a mode or a tab
-    if (["combat", "mentor", "historical"].includes(tabId)) {
-      // It's a mode - set the mode
-      setMode(tabId);
-      setActiveTab("arena");
-    } else if (tabId === "history") {
-      // Special case for history tab
-      setActiveTab(tabId);
+    setActiveTab(tabId);
+    if (tabId === "history") {
       loadDiscussionHistory();
-    } else {
-      // It's a regular tab
-      setActiveTab(tabId);
     }
   };
 
+  // Handle feature selection from the Features section in Sidebar
   const handleFeatureSelect = (featureId) => {
-    setMode(featureId);
-    setActiveTab("arena");
+    setActiveTab(featureId);
   };
 
-  const handleModeSelect = (modeId) => {
-    if (FEATURE_MODES.includes(modeId)) {
-      handleFeatureSelect(modeId);
-      return;
-    }
-
-    setMode(modeId);
-    setActiveTab("arena");
+  // Handle agent selection from feature pages and start debate
+  const handleSelectExperts = (selectedExperts) => {
+    // Set player team and prepare for session start
+    selectedExperts.forEach((expertId) => {
+      toggleMember(expertId);
+    });
+    // After selection, you could transition to session start
+    // For now, this sets the selected experts in gameState.playerTeam
   };
 
-  const handleSetupMemberToggle = (agentId) => {
-    if (!FEATURE_MODES.includes(gameState.mode)) {
-      toggleMember(agentId);
-      return;
-    }
-
-    const exists = gameState.playerTeam.find((agent) => agent.id === agentId);
-    if (exists) {
-      updateGameState({
-        playerTeam: gameState.playerTeam.filter((agent) => agent.id !== agentId),
-      });
-      return;
-    }
-
-    if (gameState.playerTeam.length >= maxMembers) return;
-    const agent = setupAgents.find((candidate) => candidate.id === agentId);
-    if (!agent) return;
-
-    updateGameState({
-      playerTeam: [...gameState.playerTeam, agent],
+  const handleSelectInterviewers = (selectedInterviewers) => {
+    // Set player team with selected interviewers
+    selectedInterviewers.forEach((interviewerId) => {
+      toggleMember(interviewerId);
     });
   };
 
-  const handleCreatedAgent = async (agent) => {
-    if (!agent?.id) return;
-    await reloadAgents();
-    handleSetupMemberToggle(agent.id);
+  const handleSelectDoctors = (selectedDoctors) => {
+    // Set player team with selected medical specialists
+    selectedDoctors.forEach((doctorId) => {
+      toggleMember(doctorId);
+    });
   };
 
   const handleExportVerdict = async () => {
@@ -582,7 +517,7 @@ function App() {
     return (
       <>
         <ModeSelect
-          onSelectMode={handleModeSelect}
+          onSelectMode={setMode}
           onOpenHistory={() => {
             setShowSetupHistory(true);
             loadDiscussionHistory();
@@ -591,7 +526,11 @@ function App() {
         <PersonaEditor
           isOpen={isPersonaEditorOpen}
           onClose={() => setIsPersonaEditorOpen(false)}
-          onCreated={handleCreatedAgent}
+          onCreated={async (agent) => {
+            if (!agent?.id) return;
+            await reloadAgents();
+            toggleMember(agent.id);
+          }}
         />
       </>
     );
@@ -603,7 +542,11 @@ function App() {
         <PersonaEditor
           isOpen={isPersonaEditorOpen}
           onClose={() => setIsPersonaEditorOpen(false)}
-          onCreated={handleCreatedAgent}
+          onCreated={async (agent) => {
+            if (!agent?.id) return;
+            await reloadAgents();
+            toggleMember(agent.id);
+          }}
         />
       </>
     );
@@ -612,9 +555,9 @@ function App() {
     return (
       <>
         <MemberSelect
-          availableAgents={setupAgents}
+          availableAgents={agents}
           selectedAgents={gameState.playerTeam.map((a) => a.id)}
-          onToggleAgent={handleSetupMemberToggle}
+          onToggleAgent={toggleMember}
           onConfirm={completeSetup}
           onBack={() => goToSetupPhase("topicSelect")}
           onOpenPersonaEditor={() => setIsPersonaEditorOpen(true)}
@@ -628,7 +571,11 @@ function App() {
         <PersonaEditor
           isOpen={isPersonaEditorOpen}
           onClose={() => setIsPersonaEditorOpen(false)}
-          onCreated={handleCreatedAgent}
+          onCreated={async (agent) => {
+            if (!agent?.id) return;
+            await reloadAgents();
+            toggleMember(agent.id);
+          }}
         />
       </>
     );
@@ -675,7 +622,22 @@ function App() {
                 setActiveTab("arena");
               }}
             />
-          ) : gameState.mode === "mentor" || gameState.mode === "historical" || gameState.mode === "fantasy" || FEATURE_MODES.includes(gameState.mode) ? (
+          ) : activeTab === "learn-law" ? (
+            <LearnLawPage
+              onSelectExperts={handleSelectExperts}
+              onClose={() => setActiveTab("arena")}
+            />
+          ) : activeTab === "interview-simulator" ? (
+            <InterviewSimulatorPage
+              onSelectInterviewers={handleSelectInterviewers}
+              onClose={() => setActiveTab("arena")}
+            />
+          ) : activeTab === "medical-consulting" ? (
+            <MedicalConsultingPage
+              onSelectDoctors={handleSelectDoctors}
+              onClose={() => setActiveTab("arena")}
+            />
+          ) : gameState.mode === "mentor" || gameState.mode === "historical" || gameState.mode === "fantasy" ? (
             <MentorDashboard topic={gameState.topic} members={gameState.playerTeam} />
           ) : (
             <>
