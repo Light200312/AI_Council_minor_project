@@ -6,7 +6,12 @@ import {
   GraduationCap,
   Clock,
   RotateCcw,
-  History
+  History,
+  Moon,
+  Sun,
+  BookOpen,
+  Briefcase,
+  Stethoscope
 } from "lucide-react";
 import { DEBATE_TEMPERATURES } from "../data/mockData";
 
@@ -44,56 +49,95 @@ const NAV_ITEMS = [
   }
 ];
 
+const FEATURE_ITEMS = [
+  {
+    id: "learn-law",
+    label: "Learn Indian Laws",
+    icon: BookOpen,
+    description: "Build a legal expert panel for constitutional and law topics."
+  },
+  {
+    id: "interview-simulator",
+    label: "Interview Simulator",
+    icon: Briefcase,
+    description: "Practice scenarios with interviewers, managers, and HR."
+  },
+  {
+    id: "medical-consulting",
+    label: "Medical Consulting",
+    icon: Stethoscope,
+    description: "Assemble a doctor panel for collaborative case discussions."
+  }
+];
+
+
+
 // Render left rail navigation plus current session summary.
 function Sidebar({
   activeTab,
   onTabChange,
+  onFeatureSelect,
   currentMode,
   currentTopic,
   currentMembers,
   currentTemperature,
   onNewSession,
-  onSignOut
+  onSignOut,
+  theme,
+  onThemeToggle
 }) {
   const tempInfo = currentTemperature ? DEBATE_TEMPERATURES.find((t) => t.id === currentTemperature) : null;
-  return <div className="w-64 h-full bg-slate-50 border-r border-slate-200 flex flex-col fixed left-0 top-0 z-10">
+  return <div className="w-64 h-full bg-slate-50 dark:bg-slate-950 border-r border-slate-200 dark:border-slate-700 flex flex-col fixed left-0 top-0 z-10">
       {
     /* Logo Area */
   }
-      <div className="p-6 border-b border-slate-200">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-slate-900 rounded-md flex items-center justify-center">
-            <span className="text-white font-bold font-mono">AI</span>
+      <div className="p-6 border-b border-slate-200 dark:border-slate-700 dark:bg-slate-900">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-slate-900 dark:bg-white rounded-md flex items-center justify-center">
+              <span className="text-white dark:text-slate-900 font-bold font-mono">AI</span>
+            </div>
+            <div>
+              <h1 className="font-bold text-slate-900 dark:text-white text-lg leading-tight">
+                COUNCIL
+              </h1>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-mono tracking-wider">
+                PLATFORM v1.0
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="font-bold text-slate-900 text-lg leading-tight">
-              COUNCIL
-            </h1>
-            <p className="text-xs text-slate-500 font-mono tracking-wider">
-              PLATFORM v1.0
-            </p>
-          </div>
+          <button
+            onClick={onThemeToggle}
+            className="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-md transition-colors flex-shrink-0"
+            aria-label="Toggle theme"
+          >
+            {theme === "light" ? (
+              <Moon className="w-5 h-5 text-slate-700 dark:text-slate-300" />
+            ) : (
+              <Sun className="w-5 h-5 text-slate-700 dark:text-slate-300" />
+            )}
+          </button>
         </div>
       </div>
 
       {
     /* Current Session Info */
   }
-      {currentMode && <div className="p-4 border-b border-slate-200 space-y-3">
-          <span className="text-[10px] font-mono text-slate-400 uppercase tracking-widest">
+      {currentMode && <div className="p-4 border-b border-slate-200 dark:border-slate-700 dark:bg-slate-900 space-y-3">
+          <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 uppercase tracking-widest">
             Active Session
           </span>
 
           {
     /* Temperature Badge */
   }
-          {tempInfo && <div className="flex items-center gap-2 bg-white rounded-md border border-slate-200 px-3 py-2">
+          {tempInfo && <div className="flex items-center gap-2 bg-white dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700 px-3 py-2">
               <span className="text-base">{tempInfo.emoji}</span>
               <div className="min-w-0">
-                <span className="text-xs font-bold text-slate-900 block">
+                <span className="text-xs font-bold text-slate-900 dark:text-white block">
                   {tempInfo.label}
                 </span>
-                <span className="text-[10px] font-mono text-slate-400 truncate block">
+                <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 truncate block">
                   {tempInfo.tagline}
                 </span>
               </div>
@@ -102,11 +146,11 @@ function Sidebar({
           {
     /* Topic */
   }
-          {currentTopic && <div className="bg-white rounded-md border border-dashed border-slate-200 p-3">
-              <span className="text-[10px] font-mono text-slate-400 uppercase block mb-1">
+          {currentTopic && <div className="bg-white dark:bg-slate-800 rounded-md border border-dashed border-slate-200 dark:border-slate-700 p-3">
+              <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 uppercase block mb-1">
                 Topic
               </span>
-              <p className="text-xs text-slate-700 font-medium leading-snug line-clamp-2">
+              <p className="text-xs text-slate-700 dark:text-slate-200 font-medium leading-snug line-clamp-2">
                 {currentTopic}
               </p>
             </div>}
@@ -115,14 +159,14 @@ function Sidebar({
     /* Members */
   }
           {currentMembers && currentMembers.length > 0 && <div>
-              <span className="text-[10px] font-mono text-slate-400 uppercase block mb-2">
+              <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 uppercase block mb-2">
                 Council
               </span>
               <div className="flex -space-x-1.5">
                 {currentMembers.map(
     (member) => <div
       key={member.id}
-      className="w-7 h-7 rounded-full bg-slate-200 border-2 border-slate-50 flex items-center justify-center font-mono text-[9px] font-bold text-slate-600"
+      className="w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-700 border-2 border-slate-50 dark:border-slate-900 flex items-center justify-center font-mono text-[9px] font-bold text-slate-600 dark:text-slate-300"
       title={member.name}
     >
 
@@ -136,12 +180,12 @@ function Sidebar({
       {
     /* Unified Navigation */
   }
-      <nav className="flex-1 p-4 space-y-4 overflow-y-auto">
+      <nav className="flex-1 p-4 space-y-4 overflow-y-auto dark:bg-slate-900">
         {
     /* Modes Section */
   }
         <div>
-          <span className="text-[10px] font-mono text-slate-400 uppercase tracking-widest block mb-2 px-1">
+          <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-2 px-1">
             Debate Modes
           </span>
           <div className="space-y-1">
@@ -151,7 +195,7 @@ function Sidebar({
     return <button
       key={item.id}
       onClick={() => onTabChange(item.id)}
-      className={`w-full flex items-center gap-3 px-4 py-3 rounded-md text-sm font-medium transition-colors ${isActive ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"}`}
+      className={`w-full flex items-center gap-3 px-4 py-3 rounded-md text-sm font-medium transition-colors ${isActive ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900" : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"}`}
     >
 
                   <Icon className="w-5 h-5" />
@@ -163,8 +207,8 @@ function Sidebar({
               onClick={() => onTabChange("history")}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-md text-sm font-medium transition-colors ${
                 activeTab === "history"
-                  ? "bg-slate-200 text-slate-900"
-                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                  ? "bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white"
+                  : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
               }`}
             >
               <History className="w-5 h-5" />
@@ -177,7 +221,7 @@ function Sidebar({
     /* Tools Section */
   }
         <div>
-          <span className="text-[10px] font-mono text-slate-400 uppercase tracking-widest block mb-2 px-1">
+          <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-2 px-1">
             Tools
           </span>
           <div className="space-y-1">
@@ -187,11 +231,36 @@ function Sidebar({
     return <button
       key={item.id}
       onClick={() => onTabChange(item.id)}
-      className={`w-full flex items-center gap-3 px-4 py-3 rounded-md text-sm font-medium transition-colors ${isActive ? "bg-slate-200 text-slate-900" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"}`}
+      className={`w-full flex items-center gap-3 px-4 py-3 rounded-md text-sm font-medium transition-colors ${isActive ? "bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white" : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"}`}
     >
 
                   <Icon className="w-5 h-5" />
                   {item.label}
+                </button>;
+  })}
+          </div>
+        </div>
+
+        {
+    /* Features Section */
+  }
+        <div>
+          <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-2 px-1">
+            Features
+          </span>
+          <div className="space-y-1">
+            {FEATURE_ITEMS.map((item) => {
+    const Icon = item.icon;
+    const isActive = activeTab === item.id;
+    return <button
+      key={item.id}
+      onClick={() => onFeatureSelect && onFeatureSelect(item.id)}
+      className={`w-full flex items-center gap-3 px-4 py-3 rounded-md text-sm font-medium transition-colors group ${isActive ? "bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white" : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"}`}
+      title={item.description}
+    >
+
+                  <Icon className="w-5 h-5" />
+                  <span className="flex-1 text-left">{item.label}</span>
                 </button>;
   })}
           </div>
@@ -201,28 +270,28 @@ function Sidebar({
       {
     /* Footer */
   }
-      <div className="p-4 border-t border-slate-200 space-y-2">
+      <div className="p-4 border-t border-slate-200 dark:border-slate-700 dark:bg-slate-900 space-y-2">
         {onNewSession && <button
     onClick={onNewSession}
-    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 hover:text-slate-900 rounded-md transition-colors"
+    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white rounded-md transition-colors"
   >
 
             <RotateCcw className="w-4 h-4" />
             New Session
           </button>}
         <div className="flex items-center gap-3 px-2 py-2">
-          <div className="w-8 h-8 rounded-full bg-slate-300 border border-slate-400" />
+          <div className="w-8 h-8 rounded-full bg-slate-300 dark:bg-slate-600 border border-slate-400 dark:border-slate-500" />
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-slate-900 truncate">
+            <p className="text-sm font-medium text-slate-900 dark:text-white truncate">
               Director Alpha
             </p>
-            <p className="text-xs text-slate-500 truncate">
+            <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
               Level 42 Strategist
             </p>
           </div>
         </div>
         <button
-          className="w-full flex items-center gap-2 px-4 py-2 text-sm text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+          className="w-full flex items-center gap-2 px-4 py-2 text-sm text-slate-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 rounded-md transition-colors"
           onClick={onSignOut}
         >
           <LogOut className="w-4 h-4" />

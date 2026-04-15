@@ -11,27 +11,27 @@ function AgentPreview({ draft, subtitle }) {
     draft.backstoryLore ||
     draft.speechStyle;
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4 space-y-2">
+    <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4 space-y-2">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <p className="text-sm font-bold text-slate-900 truncate">{draft.name}</p>
-          <p className="text-xs text-slate-500 truncate">
+          <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{draft.name}</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
             {draft.role} • {draft.era}
           </p>
-          {subtitle ? <p className="text-xs text-slate-500 mt-1">{subtitle}</p> : null}
+          {subtitle ? <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{subtitle}</p> : null}
         </div>
         <div className="shrink-0 w-10 h-10 rounded-full bg-slate-800 text-white flex items-center justify-center font-mono text-xs font-bold">
           {draft.avatarInitials}
         </div>
       </div>
 
-      <p className="text-xs text-slate-700 leading-snug">{draft.description}</p>
+      <p className="text-xs text-slate-700 dark:text-slate-200 leading-snug">{draft.description}</p>
 
       {hasMeta ? (
-        <div className="space-y-2 text-xs text-slate-700">
+        <div className="space-y-2 text-xs text-slate-700 dark:text-slate-200">
           {draft.personalityTraits ? (
             <div>
-              <span className="text-[11px] font-mono text-slate-500 uppercase tracking-wider">
+              <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                 Personality Traits
               </span>
               <p className="mt-1">{draft.personalityTraits}</p>
@@ -39,7 +39,7 @@ function AgentPreview({ draft, subtitle }) {
           ) : null}
           {draft.speechStyle ? (
             <div>
-              <span className="text-[11px] font-mono text-slate-500 uppercase tracking-wider">
+              <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                 Speech Style
               </span>
               <p className="mt-1">{draft.speechStyle}</p>
@@ -47,7 +47,7 @@ function AgentPreview({ draft, subtitle }) {
           ) : null}
           {draft.backstoryLore ? (
             <div>
-              <span className="text-[11px] font-mono text-slate-500 uppercase tracking-wider">
+              <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                 Backstory
               </span>
               <p className="mt-1">{draft.backstoryLore}</p>
@@ -56,15 +56,15 @@ function AgentPreview({ draft, subtitle }) {
         </div>
       ) : null}
 
-      <div className="grid grid-cols-3 gap-2 text-[11px] font-mono text-slate-600">
-        <div className="rounded-md bg-slate-50 border border-slate-200 px-2 py-1">
-          Logic: <span className="text-slate-900">{draft.stats?.logic}</span>
+      <div className="grid grid-cols-3 gap-2 text-[11px] font-mono text-slate-600 dark:text-slate-300">
+        <div className="rounded-md bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 px-2 py-1">
+          Logic: <span className="text-slate-900 dark:text-white">{draft.stats?.logic}</span>
         </div>
-        <div className="rounded-md bg-slate-50 border border-slate-200 px-2 py-1">
-          Rhetoric: <span className="text-slate-900">{draft.stats?.rhetoric}</span>
+        <div className="rounded-md bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 px-2 py-1">
+          Rhetoric: <span className="text-slate-900 dark:text-white">{draft.stats?.rhetoric}</span>
         </div>
-        <div className="rounded-md bg-slate-50 border border-slate-200 px-2 py-1">
-          Bias: <span className="text-slate-900">{draft.stats?.bias}</span>
+        <div className="rounded-md bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 px-2 py-1">
+          Bias: <span className="text-slate-900 dark:text-white">{draft.stats?.bias}</span>
         </div>
       </div>
     </div>
@@ -102,8 +102,8 @@ function PersonaEditor({ isOpen, onClose, onCreated }) {
     if (!isOpen) return;
     setError("");
     setSuccess("");
-    setTopic((t) => (t ? t : topicFromSession || ""));
-    setFinderTopic((t) => (t ? t : topicFromSession || ""));
+    setTopic(topicFromSession || "");
+    setFinderTopic(topicFromSession || "");
   }, [isOpen, topicFromSession]);
 
   const canSuggest = useMemo(() => Boolean(String(topic || "").trim()), [topic]);
@@ -166,6 +166,8 @@ function PersonaEditor({ isOpen, onClose, onCreated }) {
 
   const closeAndReset = () => {
     setTab("suggest");
+    setTopic(topicFromSession || "");
+    setFinderTopic(topicFromSession || "");
     setAnalysis(null);
     setSuggestions([]);
     setFinderDraft(null);
@@ -180,8 +182,8 @@ function PersonaEditor({ isOpen, onClose, onCreated }) {
   return (
     <Dialog isOpen={isOpen} onClose={closeAndReset} size="lg">
       <DialogHeader>
-        <h2 className="text-xl font-bold text-slate-900">Create New Agent</h2>
-        <p className="text-sm text-slate-500">
+        <h2 className="text-xl font-bold text-slate-900 dark:text-white">Create New Agent</h2>
+        <p className="text-sm text-slate-500 dark:text-slate-400">
           Use AI suggestions from a topic, or find a character by name.
         </p>
       </DialogHeader>
@@ -192,8 +194,8 @@ function PersonaEditor({ isOpen, onClose, onCreated }) {
             type="button"
             className={`px-3 py-1.5 rounded-md text-sm font-medium border transition-colors ${
               tab === "suggest"
-                ? "bg-slate-900 text-white border-slate-900"
-                : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                ? "bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 border-slate-900 dark:border-slate-100"
+                : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700"
             }`}
             onClick={() => setTab("suggest")}
           >
@@ -203,8 +205,8 @@ function PersonaEditor({ isOpen, onClose, onCreated }) {
             type="button"
             className={`px-3 py-1.5 rounded-md text-sm font-medium border transition-colors ${
               tab === "find"
-                ? "bg-slate-900 text-white border-slate-900"
-                : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                ? "bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 border-slate-900 dark:border-slate-100"
+                : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700"
             }`}
             onClick={() => setTab("find")}
           >
@@ -250,16 +252,16 @@ function PersonaEditor({ isOpen, onClose, onCreated }) {
             </div>
 
             {analysis ? (
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                <p className="text-xs font-mono text-slate-500 uppercase tracking-wider">
+              <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-4">
+                <p className="text-xs font-mono text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                   Topic Analysis
                 </p>
-                <p className="text-sm text-slate-900 mt-1">
+                <p className="text-sm text-slate-900 dark:text-white mt-1">
                   {analysis.domain ? `Domain: ${analysis.domain}` : "Domain: (unspecified)"}
                   {analysis.timePeriod ? ` • Period: ${analysis.timePeriod}` : ""}
                 </p>
                 {analysis.keyPerspectives?.length ? (
-                  <p className="text-xs text-slate-600 mt-1">
+                  <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">
                     Perspectives: {analysis.keyPerspectives.slice(0, 6).join(", ")}
                   </p>
                 ) : null}
@@ -303,7 +305,7 @@ function PersonaEditor({ isOpen, onClose, onCreated }) {
             </div>
 
             {finderNotes ? (
-              <div className="rounded-md border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600">
+              <div className="rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs text-slate-600 dark:text-slate-300">
                 {finderNotes}
               </div>
             ) : null}

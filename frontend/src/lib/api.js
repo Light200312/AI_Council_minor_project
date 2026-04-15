@@ -58,6 +58,14 @@ const api = {
     request("/combat/opponent/next-turn", { method: "POST", body: payload, token }),
   combatJudgeRound: (payload, token) =>
     request("/combat/judge", { method: "POST", body: payload, token }),
+  combatFinalizeVerdict: (payload, token) =>
+    request("/combat/verdict", { method: "POST", body: payload, token }),
+  generateLawPanel: (payload, token) =>
+    request("/features/law-panel", { method: "POST", body: payload, token }),
+  generateInterviewPanel: (payload, token) =>
+    request("/features/interview-panel", { method: "POST", body: payload, token }),
+  generateMedicalPanel: (payload, token) =>
+    request("/features/medical-panel", { method: "POST", body: payload, token }),
 };
 
 export { api, API_BASE_URL };

@@ -1,16 +1,61 @@
-# React + Vite
+# AI Council Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+The React client for AI Council, a debate arena where you assemble a council of personas, pick strategies, and run structured rounds against an opposing team. This frontend handles the setup flow, live debate UI, analytics, and history replay.
 
-Currently, two official plugins are available:
+**Features**
+- Authentication gate and session bootstrapping
+- Multi-step setup flow for mode, topic, and roster selection
+- Persona creation and editing for custom agents
+- Draft-style team selection with opponent team auto-selection
+- Strategy selection with preview generation and tweakable drafts
+- Turn-based combat UI with round pairing and transcript display
+- Final results screen with per-round verdicts and total score
+- Discussion history loading and replay
+- Bias control slider and live analytics panels
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+**Tech Stack**
+- React, Vite, Tailwind CSS, Zustand
 
-## React Compiler
+**Project Structure**
+```
+frontend
+|-- public
+|-- src
+|   |-- components         # UI building blocks
+|   |-- data               # Mock data and constants
+|   |-- store              # Zustand state
+|   |-- lib                # API client and helpers
+|   |-- App.jsx            # Main app shell
+|   `-- main.jsx           # React entry point
+|-- index.html
+`-- README.md
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+**Getting Started**
+1. Install dependencies
 
-## Expanding the ESLint configuration
+```
+npm install
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+2. Set the API base URL (optional)
+
+Create a `frontend/.env` file if your backend is not at the default `/api` proxy path.
+
+```
+VITE_API_BASE_URL=http://localhost:3000/api
+```
+
+3. Start the dev server
+
+```
+npm run dev
+```
+
+The app runs on `http://localhost:5173` by default.
+
+**Inspirations**
+- Competitive debate formats and adjudication
+- Sports-style drafting and team composition
+- Role-playing personas with distinct rhetorical styles
+- Director''s cut editing workflows for creative drafting

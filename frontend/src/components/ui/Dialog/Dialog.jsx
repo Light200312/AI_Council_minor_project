@@ -1,6 +1,6 @@
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion as Motion, AnimatePresence } from "framer-motion";
 
 // Dialog wraps Radix primitives with consistent sizing, positioning, and motion.
 const Dialog = ({
@@ -32,7 +32,7 @@ const Dialog = ({
       <AnimatePresence>
         {isOpen && <DialogPrimitive.Portal forceMount>
             <DialogPrimitive.Overlay asChild>
-              <motion.div
+	              <Motion.div
     initial={{
       opacity: 0
     }}
@@ -43,11 +43,11 @@ const Dialog = ({
       opacity: 0
     }}
     className={`fixed inset-0 z-50 ${backdropClasses[backdrop]}`}
-  />
+	  />
 
-            </DialogPrimitive.Overlay>
-            <DialogPrimitive.Content asChild aria-describedby={undefined}>
-              <motion.div
+	            </DialogPrimitive.Overlay>
+	            <DialogPrimitive.Content asChild aria-describedby={undefined}>
+	              <Motion.div
     initial={position === "right" ? {
       x: "100%"
     } : {
@@ -73,20 +73,20 @@ const Dialog = ({
     className={`
                     ${position !== "right" ? sizeClasses[size] : "w-[400px]"}
                     ${position === "right" ? "h-full" : ""}
-                    bg-white border border-gray-200 shadow-lg
+                    bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 shadow-lg
                     ${position === "center" ? "rounded-lg" : ""}
                     ${className}
                   `}
   >
 
                   {children}
-                  <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-white transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 disabled:pointer-events-none">
+                  <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-white dark:ring-offset-slate-800 transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-gray-400 dark:focus:ring-slate-500 focus:ring-offset-2 disabled:pointer-events-none text-slate-500 dark:text-slate-300">
                     <X className="h-4 w-4" />
                     <span className="sr-only">Close</span>
                   </DialogPrimitive.Close>
                 </div>
-              </motion.div>
-            </DialogPrimitive.Content>
+	              </Motion.div>
+	            </DialogPrimitive.Content>
           </DialogPrimitive.Portal>}
       </AnimatePresence>
     </DialogPrimitive.Root>;
@@ -95,8 +95,8 @@ const Dialog = ({
 const DialogHeader = ({
   children,
   className = ""
-}) => <div className={`p-6 border-b border-gray-200 ${className}`}>
-    <DialogPrimitive.Title className="text-lg font-semibold">
+}) => <div className={`p-6 border-b border-gray-200 dark:border-slate-700 ${className}`}>
+    <DialogPrimitive.Title className="text-lg font-semibold text-slate-900 dark:text-slate-100">
       {children}
     </DialogPrimitive.Title>
   </div>;
@@ -110,7 +110,7 @@ const DialogFooter = ({
   children,
   className = ""
 }) => <div
-  className={`p-6 border-t border-gray-200 flex justify-end gap-4 ${className}`}
+  className={`p-6 border-t border-gray-200 dark:border-slate-700 flex justify-end gap-4 ${className}`}
 >
 
     {children}

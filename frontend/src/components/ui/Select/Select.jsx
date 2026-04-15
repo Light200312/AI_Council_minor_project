@@ -125,7 +125,7 @@ const Select = ({
                     <X size={14} />
                   </button>
                 </span>
-  ) : <span>{selectedLabels[0]}</span> : <span className="text-gray-400">{placeholder}</span>}
+  ) : <span>{selectedLabels[0]}</span> : <span className="text-gray-400 dark:text-slate-500">{placeholder}</span>}
         </div>
         <div className="absolute right-2 top-1/2 -translate-y-1/2">
           <ChevronDown
@@ -137,33 +137,34 @@ const Select = ({
 
         </div>
       </div>
-      {error && <p className="mt-1 text-sm text-gray-700">{error}</p>}
-      {open && !disabled && <FloatingFocusManager context={context} modal={false}>
-          <div
-    ref={refs.setFloating}
-    style={floatingStyles}
-    {...getFloatingProps()}
-    className="bg-white border border-gray-300 rounded-md shadow-lg z-50"
+	      {error && <p className="mt-1 text-sm text-gray-700 dark:text-red-300">{error}</p>}
+	      {open && !disabled && <FloatingFocusManager context={context} modal={false}>
+	          <div
+    // eslint-disable-next-line react-hooks/refs
+	    ref={refs.setFloating}
+	    style={floatingStyles}
+	    {...getFloatingProps()}
+    className="bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-md shadow-lg z-50 text-slate-900 dark:text-slate-100"
   >
 
-            {searchable && <div className="p-2 border-b border-gray-200">
+            {searchable && <div className="p-2 border-b border-gray-200 dark:border-slate-700">
                 <div className="relative">
                   <input
     type="text"
     value={searchQuery}
     onChange={(e) => setSearchQuery(e.target.value)}
-    className="w-full px-8 py-1 border border-gray-300 rounded-sm text-sm"
+    className="w-full px-8 py-1 border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 rounded-sm text-sm text-slate-900 dark:text-slate-100"
     placeholder="Search..."
   />
 
                   <Search
     size={16}
-    className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400"
+    className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500"
   />
 
                   {searchQuery && <button
     onClick={() => setSearchQuery("")}
-    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300"
   >
 
                       <X size={16} />
@@ -173,7 +174,7 @@ const Select = ({
             <div className="max-h-60 overflow-auto">
               {Object.entries(groupedOptions).map(
     ([group, options2]) => <div key={group || "ungrouped"}>
-                  {group && <div className="px-3 py-1 text-sm font-medium text-gray-700 bg-gray-50">
+                  {group && <div className="px-3 py-1 text-sm font-medium text-gray-700 dark:text-slate-200 bg-gray-50 dark:bg-slate-700">
                       {group}
                     </div>}
                   {options2.map(
@@ -183,7 +184,7 @@ const Select = ({
         disabled={option.disabled}
         className={clsx(
           "w-full px-3 py-2 text-sm text-left flex items-center",
-          "hover:bg-gray-100 focus:bg-gray-100 focus:outline-none",
+          "hover:bg-gray-100 dark:hover:bg-slate-700 focus:bg-gray-100 dark:focus:bg-slate-700 focus:outline-none",
           {
             "opacity-50 cursor-not-allowed": option.disabled
           }

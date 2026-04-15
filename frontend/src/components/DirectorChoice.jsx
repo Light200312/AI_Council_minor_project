@@ -85,13 +85,13 @@ function DirectorChoice({
   const handleRegenerate = () => {
     if (previewStrategy) onGeneratePreview?.();
   };
-  return <div className="w-full bg-white border-t border-slate-200 p-6 shadow-lg">
+  return <div className="w-full bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 p-6 shadow-lg">
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">
+          <h3 className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
             Director's Choice
           </h3>
-          <span className="text-xs font-mono text-slate-400">
+          <span className="text-xs font-mono text-slate-400 dark:text-slate-500">
             {previewStrategy ? "PREVIEW ARGUMENT BEFORE SENDING" : "SELECT RESPONSE STRATEGY"}
           </span>
         </div>
@@ -104,11 +104,11 @@ function DirectorChoice({
     /* Strategy Badge */
   }
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-white rounded-md border border-slate-100 shadow-sm">
+              <div className="p-2 bg-white dark:bg-slate-700 rounded-md border border-slate-100 dark:border-slate-600 shadow-sm">
                 {getIcon(previewStrategy.type)}
               </div>
               <div>
-                <span className="font-bold text-slate-900">
+                <span className="font-bold text-slate-900 dark:text-white">
                   {previewStrategy.title}
                 </span>
                 <span
@@ -123,17 +123,17 @@ function DirectorChoice({
             {
     /* Argument Preview */
   }
-            <div className="border-2 border-dashed border-slate-200 rounded-lg p-5 bg-slate-50">
+            <div className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg p-5 bg-slate-50 dark:bg-slate-900">
               <div className="flex items-center gap-2 mb-3">
-                <Eye className="w-4 h-4 text-slate-400" />
-                <span className="text-xs font-mono text-slate-400 uppercase tracking-wider">
+                <Eye className="w-4 h-4 text-slate-400 dark:text-slate-500" />
+                <span className="text-xs font-mono text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                   Generated Argument Preview
                 </span>
               </div>
-              <p className="text-sm text-slate-700 leading-relaxed font-mono">
+              <p className="text-sm text-slate-700 dark:text-slate-200 leading-relaxed font-mono">
                 {previewText ? `"${previewText}"` : "No preview generated yet."}
               </p>
-              <div className="flex items-center gap-4 mt-4 pt-3 border-t border-slate-200 text-xs font-mono text-slate-500">
+              <div className="flex items-center gap-4 mt-4 pt-3 border-t border-slate-200 dark:border-slate-700 text-xs font-mono text-slate-500 dark:text-slate-400">
                 <div className="flex items-center gap-1">
                   <span className="w-2 h-2 rounded-full bg-slate-400" />
                   Logic: {previewStrategy.logicScore}
@@ -196,16 +196,16 @@ function DirectorChoice({
     >
 
                 <Card
-      className={`h-full border-2 border-slate-200 ${getBorderColor(option.type)}`}
+      className={`h-full border-2 border-slate-200 dark:border-slate-700 ${getBorderColor(option.type)}`}
     >
 
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <div className="p-2 bg-white rounded-md border border-slate-100 shadow-sm">
+                        <div className="p-2 bg-white dark:bg-slate-700 rounded-md border border-slate-100 dark:border-slate-600 shadow-sm">
                           {getIcon(option.type)}
                         </div>
-                        <span className="font-bold text-slate-900">
+                        <span className="font-bold text-slate-900 dark:text-white">
                           {option.title}
                         </span>
                       </div>
@@ -218,11 +218,11 @@ function DirectorChoice({
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm text-slate-600 mb-4 h-10">
+                    <p className="text-sm text-slate-600 dark:text-slate-300 mb-4 h-10">
                       {option.description}
                     </p>
 
-                    <div className="flex items-center gap-4 text-xs font-mono text-slate-500">
+                    <div className="flex items-center gap-4 text-xs font-mono text-slate-500 dark:text-slate-400">
                       <div className="flex items-center gap-1">
                         <span className="w-2 h-2 rounded-full bg-slate-400" />
                         Logic: {option.logicScore}
