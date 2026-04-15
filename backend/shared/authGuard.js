@@ -1,4 +1,4 @@
-import { verifyToken } from "../utils/auth.js";
+import { verifyToken } from "../features/auth/auth.utils.js";
 
 function authGuard(req, res, next) {
   const header = req.headers.authorization || "";
@@ -14,4 +14,3 @@ function authGuard(req, res, next) {
 }
 
 export default authGuard;
-

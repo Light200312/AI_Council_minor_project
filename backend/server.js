@@ -2,14 +2,14 @@
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
-import connectDB from "./DB/config.js";
-import { seedDatabase } from "./services/seed.js";
-import authRoutes from "./routes/auth.routes.js";
-import agentRoutes from "./routes/agent.routes.js";
-import messageRoutes from "./routes/message.routes.js";
-import orchestratorRoutes from "./routes/orchestrator.routes.js";
-import combatRoutes from "./routes/combat.routes.js";
-import featuresRoutes from "./routes/features.routes.js";
+import connectDB from "./shared/db.js";
+import { seedDatabase } from "./data/seed.js";
+import authRoutes from "./features/auth/auth.routes.js";
+import agentRoutes from "./features/agent/agent.routes.js";
+import messageRoutes from "./features/message/message.routes.js";
+import orchestratorRoutes from "./features/orchestrator/orchestrator.routes.js";
+import combatRoutes from "./features/combat/combat.routes.js";
+import featuresRoutes from "./features/panels/panels.routes.js";
 
 dotenv.config();
 

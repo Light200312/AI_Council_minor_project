@@ -1,5 +1,10 @@
-import axios from "axios";
+// ─────────────────────────────────────────────────────────────
+// LLM Client — unified interface to multiple LLM providers
+// (Ollama, Gemini, Claude, DeepSeek, OpenRouter) with
+// automatic fallback and priority-based routing.
+// ─────────────────────────────────────────────────────────────
 
+import axios from "axios";
 import { resolveOllamaModel } from "./agentModelRegistry.js";
 
 const OLLAMA_BASE_URL =

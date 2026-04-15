@@ -1,12 +1,18 @@
-import express from "express";
-import Agent from "../models/agent.js";
-import { runAgentStep } from "../services/agentRuntime.js";
-import { findOrDraftAgentByName, normalizeAgentDraft, suggestAgentsFromTopic } from "../services/agentCreator.js";
-import authGuard from "../middleware/auth.js";
+// ─────────────────────────────────────────────────────────────
+// Agent controller — request handling for /api/agents routes.
+// ─────────────────────────────────────────────────────────────
 
-const router = express.Router();
+import Agent from "./agent.model.js";
+import { runAgentStep } from "./agentRuntime.service.js";
+import {
+  findOrDraftAgentByName,
+  normalizeAgentDraft,
+  suggestAgentsFromTopic,
+} from "./agentCreator.service.js";
+import { escapeRegex, stripUndefined } from "../../shared/helpers.js";
 
-router.get("/", authGuard, async (_req, res) => {
+// ── GET / ────────────────────────────────────────────────────
+export async function listAgents(_req, res) {
   try {
     const agents = await Agent.find({}).sort({ id: 1 }).lean();
     return res.json({ agents });
@@ -14,9 +20,10 @@ router.get("/", authGuard, async (_req, res) => {
     console.error("Agent list failed:", error);
     return res.status(500).json({ message: "Failed to fetch agents.", error: error.message });
   }
-});
+}
 
-router.post("/", authGuard, async (req, res) => {
+// ── POST / ───────────────────────────────────────────────────
+export async function createAgent(req, res) {
   try {
     const payload = req.body || {};
     const createdBy = req.auth?.sub ? req.auth.sub : undefined;
@@ -38,7 +45,9 @@ router.post("/", authGuard, async (req, res) => {
       return res.status(409).json({ message: "Agent id already exists.", agent: existingById });
     }
 
-    const existingByName = await Agent.findOne({ name: new RegExp(`^${draft.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i") }).lean();
+    const existingByName = await Agent.findOne({
+      name: new RegExp(`^${escapeRegex(draft.name)}$`, "i"),
+    }).lean();
     if (existingByName) {
       return res.status(409).json({ message: "Agent name already exists.", agent: existingByName });
     }
@@ -49,9 +58,10 @@ router.post("/", authGuard, async (req, res) => {
     console.error("Agent create failed:", error);
     return res.status(500).json({ message: "Failed to create agent.", error: error.message });
   }
-});
+}
 
-router.get("/:id", authGuard, async (req, res) => {
+// ── GET /:id ─────────────────────────────────────────────────
+export async function getAgent(req, res) {
   try {
     const agent = await Agent.findOne({ id: req.params.id }).lean();
     if (!agent) return res.status(404).json({ message: "Agent not found." });
@@ -60,12 +70,13 @@ router.get("/:id", authGuard, async (req, res) => {
     console.error("Agent fetch failed:", error);
     return res.status(500).json({ message: "Failed to fetch agent.", error: error.message });
   }
-});
+}
 
-router.put("/:id", authGuard, async (req, res) => {
+// ── PUT /:id ─────────────────────────────────────────────────
+export async function updateAgent(req, res) {
   try {
     const payload = req.body || {};
-    const updates = {
+    const updates = stripUndefined({
       personalityTraits: payload.personalityTraits,
       backstoryLore: payload.backstoryLore,
       speechStyle: payload.speechStyle,
@@ -74,10 +85,6 @@ router.put("/:id", authGuard, async (req, res) => {
       sourceTitle: payload.sourceTitle,
       sourceType: payload.sourceType,
       genre: payload.genre,
-    };
-
-    Object.keys(updates).forEach((key) => {
-      if (updates[key] === undefined) delete updates[key];
     });
 
     const agent = await Agent.findOneAndUpdate(
@@ -91,9 +98,10 @@ router.put("/:id", authGuard, async (req, res) => {
     console.error("Agent update failed:", error);
     return res.status(500).json({ message: "Failed to update agent.", error: error.message });
   }
-});
+}
 
-router.delete("/:id", authGuard, async (req, res) => {
+// ── DELETE /:id ──────────────────────────────────────────────
+export async function deleteAgent(req, res) {
   try {
     const agent = await Agent.findOneAndDelete({ id: req.params.id }).lean();
     if (!agent) return res.status(404).json({ message: "Agent not found." });
@@ -102,9 +110,10 @@ router.delete("/:id", authGuard, async (req, res) => {
     console.error("Agent delete failed:", error);
     return res.status(500).json({ message: "Failed to delete agent.", error: error.message });
   }
-});
+}
 
-router.post("/suggest", authGuard, async (req, res) => {
+// ── POST /suggest ────────────────────────────────────────────
+export async function suggestAgents(req, res) {
   try {
     const { topic, maxSuggestions = 6, mode } = req.body || {};
     const createdBy = req.auth?.sub ? req.auth.sub : undefined;
@@ -119,9 +128,10 @@ router.post("/suggest", authGuard, async (req, res) => {
     console.error("Agent suggest failed:", error);
     return res.status(500).json({ message: "Failed to generate suggestions.", error: error.message });
   }
-});
+}
 
-router.post("/find", authGuard, async (req, res) => {
+// ── POST /find ───────────────────────────────────────────────
+export async function findAgent(req, res) {
   try {
     const { name, topic } = req.body || {};
     const createdBy = req.auth?.sub ? req.auth.sub : undefined;
@@ -137,9 +147,10 @@ router.post("/find", authGuard, async (req, res) => {
     console.error("Agent find failed:", error);
     return res.status(500).json({ message: "Failed to find character.", error: error.message });
   }
-});
+}
 
-router.post("/:id/respond", authGuard, async (req, res) => {
+// ── POST /:id/respond ────────────────────────────────────────
+export async function agentRespond(req, res) {
   try {
     const {
       taskGoal,
@@ -170,6 +181,4 @@ router.post("/:id/respond", authGuard, async (req, res) => {
     console.error("Agent respond failed:", error);
     return res.status(500).json({ message: "Agent response failed.", error: error.message });
   }
-});
-
-export default router;
+}

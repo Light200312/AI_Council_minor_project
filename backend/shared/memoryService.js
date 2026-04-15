@@ -1,15 +1,19 @@
-import TopicMemory from "../models/topicMemory.js";
+// ─────────────────────────────────────────────────────────────
+// Memory Service — manages topic-scoped conversation memory
+// with minimal and rich summarization modes.
+// ─────────────────────────────────────────────────────────────
+
+import TopicMemory from "./topicMemory.model.js";
 import { callOrchestratorLLM } from "./llmClient.js";
+import { truncateText } from "./helpers.js";
+
+// ─── Constants ──────────────────────────────────────────────
 
 const ACTIVE_CONTEXT_LIMIT = 8;
 const FLUSH_MIN_MESSAGES = 6;
 const MAX_SUMMARY_MESSAGES = 24;
-const MAX_LINE_CHARS = 400;
 
-function truncateText(text = "", maxChars = MAX_LINE_CHARS) {
-  const safe = String(text || "");
-  return safe.length > maxChars ? `${safe.slice(0, maxChars - 1)}…` : safe;
-}
+// ─── Internal Helpers ───────────────────────────────────────
 
 function normalizeTopic(taskGoal, topic) {
   const fromTopic = String(topic || "").trim();
@@ -67,6 +71,8 @@ function extractPendingMessages(messages = [], lastFlushedAt, activeLimit = ACTI
 function formatTranscript(messages = []) {
   return messages.map((m) => `${m.speakerName}: ${truncateText(m.text)}`).join("\n");
 }
+
+// ─── Summarizers ────────────────────────────────────────────
 
 async function summarizeMinimal({ topic, priorSummary, messages }) {
   const system = "You are a concise memory summarizer for a discussion assistant.";
@@ -126,6 +132,8 @@ Return strict JSON with:
   }
 }
 
+// ─── Topic Memory Updates ───────────────────────────────────
+
 async function updateTopicMemory({ topic, sessionId = "", messages = [], memoryMode = "minimal" }) {
   if (!topic) return { memory: null, updated: false };
   const key = { topic, sessionId: String(sessionId || "") };
@@ -184,6 +192,8 @@ async function updateTopicMemory({ topic, sessionId = "", messages = [], memoryM
   return { memory, updated: true };
 }
 
+// ─── Memory Formatting ──────────────────────────────────────
+
 function formatMemoryBlock(memory, { mode = "minimal", triggerRetrieval = false } = {}) {
   if (!memory?.summary) return "";
   if (mode !== "rich" || !triggerRetrieval) {
@@ -199,6 +209,8 @@ function formatMemoryBlock(memory, { mode = "minimal", triggerRetrieval = false 
   ].filter(Boolean);
   return parts.join("\n");
 }
+
+// ─── Context Builder (main export) ──────────────────────────
 
 async function buildContextSummary({ taskGoal, topic, sessionId, messages, memoryMode = "minimal" }) {
   const resolvedTopic = normalizeTopic(taskGoal, topic);
