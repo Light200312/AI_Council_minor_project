@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Download, Users, Plus, SlidersHorizontal } from "lucide-react";
+import { Users, Plus, SlidersHorizontal } from "lucide-react";
 import { Button } from "./ui/Button";
 import { Dialog, DialogContent, DialogHeader } from "./ui/Dialog";
 import { useAppStore } from "../store/useAppStore";
@@ -15,7 +15,10 @@ function getSessionDisplayCode(sessionId) {
 }
 
 // ControlBar shows session-level actions and live status.
-function ControlBar({ exportVerdict, isExportingVerdict = false, onConcludeDebate }) {
+function ControlBar({
+  onConcludeDebate,
+  isGeneratingReport = false,
+}) {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [exportError, setExportError] = useState("");
   const sessionId = useAppStore((state) => state.gameState.sessionId);
@@ -54,33 +57,15 @@ function ControlBar({ exportVerdict, isExportingVerdict = false, onConcludeDebat
     orchestrationModes.find((mode) => mode.id === orchestratorMode)?.label || "Fast";
   const selectedMemoryMode = memoryModes.find((mode) => mode.id === memoryMode)?.label || "Memory: Minimal";
   const sessionDisplayCode = getSessionDisplayCode(sessionId);
-  const canExportVerdict = mode === "combat" && (roundResults.length > 0 || combatLog.length > 1);
-  const canConcludeDebate = mode === "mentor" || mode === "historical" || mode === "fantasy";
-
-  const handleExportVerdict = async () => {
-    setExportError("");
-    try {
-      if (typeof exportVerdict !== "function") {
-        throw new Error("Verdict export is unavailable.");
-      }
-      await exportVerdict();
-    } catch (error) {
-      setExportError(error.message || "Failed to export verdict.");
-    }
-  };
+  const canConcludeDebate = mode === "combat" ? roundResults.length > 0 || combatLog.length > 1 : true;
 
   const handlePrimaryAction = async () => {
     setExportError("");
-    if (canConcludeDebate) {
-      if (typeof onConcludeDebate !== "function") {
-        setExportError("Conclude debate is unavailable.");
-        return;
-      }
-      onConcludeDebate();
+    if (typeof onConcludeDebate !== "function") {
+      setExportError("Conclude debate is unavailable.");
       return;
     }
-
-    await handleExportVerdict();
+    await onConcludeDebate();
   };
 
   const renderOptionGroup = ({ title, options, selectedValue, onChange }) => (
@@ -160,13 +145,12 @@ function ControlBar({ exportVerdict, isExportingVerdict = false, onConcludeDebat
         <Button
     variant="secondary"
     size="small"
-    leftIcon={<Download className="w-4 h-4" />}
     onClick={handlePrimaryAction}
-    disabled={canConcludeDebate ? false : !canExportVerdict}
-    loading={isExportingVerdict}
+    disabled={!canConcludeDebate}
+    loading={isGeneratingReport}
   >
 
-          {canConcludeDebate ? "Conclude Debate" : "Export Verdict"}
+          Conclude Debate
         </Button>
         <Button
     variant="primary"

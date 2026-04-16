@@ -6,6 +6,7 @@
  */
 
 import Message from "./message.model.js";
+import DiscussionReport from "./discussionReport.model.js";
 import { generateMessageId, sanitizeStringArray } from "../../shared/helpers.js";
 
 /**
@@ -20,8 +21,11 @@ export async function listMessages(req, res) {
     const filter = {};
     if (sessionId) filter.sessionId = String(sessionId);
     if (topic) filter.topic = String(topic);
-    const messages = await Message.find(filter).sort({ timestamp: 1 }).lean();
-    return res.json({ messages });
+    const [messages, reports] = await Promise.all([
+      Message.find(filter).sort({ timestamp: 1 }).lean(),
+      DiscussionReport.find(filter).sort({ updatedAt: -1 }).lean(),
+    ]);
+    return res.json({ messages, reports });
   } catch (error) { console.error("Message list failed:", error); return res.status(500).json({ message: "Failed to fetch messages.", error: error.message }); }
 }
 

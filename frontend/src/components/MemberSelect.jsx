@@ -73,6 +73,77 @@ function MemberSelect({
     }),
     []
   );
+  const normalizeText = (value = "") => String(value || "").trim().toLowerCase();
+  const featureConfigByMode = useMemo(
+    () => ({
+      "learn-law": {
+        title: "Recommended Lawmakers",
+        subtitle: "Prebuilt legal experts matched to this feature",
+        topics: ["indian law makers"],
+        domains: ["law"],
+        terms: ["law", "legal", "constitution", "constitutional", "rights"],
+        accent: {
+          container: "border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/40",
+          title: "text-amber-900 dark:text-amber-100",
+          subtitle: "text-amber-700 dark:text-amber-300",
+          badge: "border-amber-300 bg-amber-100 text-amber-900 dark:border-amber-700 dark:bg-amber-900/70 dark:text-amber-100",
+        },
+      },
+      "interview-simulator": {
+        title: "Recommended Interview Panel",
+        subtitle: "Prebuilt interviewers matched to this feature",
+        topics: ["interview panel"],
+        domains: ["technology", "human resources", "business"],
+        terms: ["interview", "hiring", "hr", "recruit", "system design"],
+        accent: {
+          container: "border-sky-300 bg-sky-50 dark:border-sky-800 dark:bg-sky-950/40",
+          title: "text-sky-900 dark:text-sky-100",
+          subtitle: "text-sky-700 dark:text-sky-300",
+          badge: "border-sky-300 bg-sky-100 text-sky-900 dark:border-sky-700 dark:bg-sky-900/70 dark:text-sky-100",
+        },
+      },
+      "medical-consulting": {
+        title: "Recommended Medical Specialists",
+        subtitle: "Prebuilt doctors and specialists matched to this feature",
+        topics: ["medical specialists"],
+        domains: ["medicine", "medical", "health"],
+        terms: ["doctor", "medical", "medicine", "surgery", "clinical"],
+        accent: {
+          container: "border-emerald-300 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/40",
+          title: "text-emerald-900 dark:text-emerald-100",
+          subtitle: "text-emerald-700 dark:text-emerald-300",
+          badge: "border-emerald-300 bg-emerald-100 text-emerald-900 dark:border-emerald-700 dark:bg-emerald-900/70 dark:text-emerald-100",
+        },
+      },
+      historical: {
+        title: "Recommended Historians",
+        subtitle: "Prebuilt historians matched to this mode",
+        topics: ["historians"],
+        domains: ["history"],
+        terms: ["history", "historian", "historical"],
+        accent: {
+          container: "border-violet-300 bg-violet-50 dark:border-violet-800 dark:bg-violet-950/40",
+          title: "text-violet-900 dark:text-violet-100",
+          subtitle: "text-violet-700 dark:text-violet-300",
+          badge: "border-violet-300 bg-violet-100 text-violet-900 dark:border-violet-700 dark:bg-violet-900/70 dark:text-violet-100",
+        },
+      },
+      fantasy: {
+        title: "Recommended Fantasy Council",
+        subtitle: "Fictional characters are prioritized for this mode",
+        topics: [],
+        domains: ["fantasy"],
+        terms: ["fantasy", "fictional", "lore"],
+        accent: {
+          container: "border-fuchsia-300 bg-fuchsia-50 dark:border-fuchsia-800 dark:bg-fuchsia-950/40",
+          title: "text-fuchsia-900 dark:text-fuchsia-100",
+          subtitle: "text-fuchsia-700 dark:text-fuchsia-300",
+          badge: "border-fuchsia-300 bg-fuchsia-100 text-fuchsia-900 dark:border-fuchsia-700 dark:bg-fuchsia-900/70 dark:text-fuchsia-100",
+        },
+      },
+    }),
+    []
+  );
   const inferDomain = (agent) => {
     if (agent?.domain) return String(agent.domain).toLowerCase();
     const tagText = (agent.tags || []).map((t) => String(t).toLowerCase());
@@ -95,6 +166,29 @@ function MemberSelect({
     if (roleText.includes("histor")) return "history";
     if (roleText.includes("science") || roleText.includes("scientist") || roleText.includes("physician")) return "science";
     return "other";
+  };
+  const isFeaturedAgentForMode = (agent) => {
+    const config = featureConfigByMode[mode];
+    if (!config) return false;
+    if (mode === "fantasy") return Boolean(agent?.isFantasy);
+
+    const sourceTopic = normalizeText(agent?.sourceTopic);
+    const domain = normalizeText(agent?.domain);
+    const haystack = [
+      agent?.name,
+      agent?.role,
+      agent?.description,
+      agent?.specialAbility,
+      ...(Array.isArray(agent?.tags) ? agent.tags : []),
+    ]
+      .map((item) => normalizeText(item))
+      .join(" ");
+
+    return (
+      config.topics.some((topic) => sourceTopic === topic) ||
+      config.domains.some((candidateDomain) => domain === candidateDomain) ||
+      config.terms.some((term) => haystack.includes(term))
+    );
   };
   const scopedAgents = useMemo(() => {
     if (mode === "fantasy") {
@@ -120,15 +214,27 @@ function MemberSelect({
       (agent) => agent.name.toLowerCase().includes(q) || agent.role.toLowerCase().includes(q) || agent.era.toLowerCase().includes(q) || agent.description.toLowerCase().includes(q) || agent.specialAbility.toLowerCase().includes(q)
     );
   }, [scopedAgents, searchQuery, domainFilter]);
+  const featuredAgents = useMemo(
+    () =>
+      filteredAgents
+        .filter((agent) => isFeaturedAgentForMode(agent))
+        .sort((left, right) => left.name.localeCompare(right.name)),
+    [filteredAgents, mode]
+  );
+  const featuredAgentIds = useMemo(() => new Set(featuredAgents.map((agent) => agent.id)), [featuredAgents]);
+  const regularAgents = useMemo(
+    () => filteredAgents.filter((agent) => !featuredAgentIds.has(agent.id)),
+    [filteredAgents, featuredAgentIds]
+  );
   const groupedAgents = useMemo(() => {
     const groups = {};
-    filteredAgents.forEach((agent) => {
+    regularAgents.forEach((agent) => {
       const key = inferDomain(agent);
       if (!groups[key]) groups[key] = [];
       groups[key].push(agent);
     });
     return groups;
-  }, [filteredAgents]);
+  }, [regularAgents]);
   const openEditor = (agent) => {
     setEditingAgent(agent);
     setEditDraft({
@@ -300,7 +406,63 @@ function MemberSelect({
           </p>}
 
         <div className="space-y-8 mb-24">
-          {Object.keys(groupedAgents).length === 0 ? (
+          {featuredAgents.length > 0 ? (
+            <div className={`rounded-2xl border p-5 ${featureConfigByMode[mode]?.accent.container || "border-slate-200 bg-slate-50"}`}>
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div>
+                  <h3 className={`text-base font-bold ${featureConfigByMode[mode]?.accent.title || "text-slate-900 dark:text-white"}`}>
+                    {featureConfigByMode[mode]?.title || "Recommended Agents"}
+                  </h3>
+                  <p className={`text-sm ${featureConfigByMode[mode]?.accent.subtitle || "text-slate-600 dark:text-slate-300"}`}>
+                    {featureConfigByMode[mode]?.subtitle || "Mode-relevant agents are highlighted here first."}
+                  </p>
+                </div>
+                <span className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${featureConfigByMode[mode]?.accent.badge || "border-slate-300 bg-white text-slate-700"}`}>
+                  Featured
+                </span>
+              </div>
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+                {featuredAgents.map((agent) => (
+                  <div key={agent.id} className="relative ">
+                    <div className="absolute left-2 top-2 z-10 rounded-full border border-white/70 bg-white/90 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-700 shadow-sm dark:border-slate-600 dark:bg-slate-900/90 dark:text-slate-200">
+                      {agent.sourceTopic || "Featured"}
+                    </div>
+                    <div className="absolute right-2 top-2 z-10 flex gap-2">
+                      <button
+                        type="button"
+                        className="rounded-full bg-white/90 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 p-1.5 text-slate-600 dark:text-slate-300 shadow-sm hover:text-slate-900 dark:hover:text-white"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openEditor(agent);
+                        }}
+                        title="Edit persona fields"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded-full bg-white/90 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 p-1.5 text-slate-600 dark:text-slate-300 shadow-sm hover:text-red-600 dark:hover:text-red-400"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(agent);
+                        }}
+                        title="Delete agent"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                    <AgentCard
+                      agent={agent}
+                      isSelected={selectedAgents.includes(agent.id)}
+                      onClick={() => onToggleAgent(agent.id)}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {featuredAgents.length === 0 && Object.keys(groupedAgents).length === 0 ? (
             <div className="text-center py-12">
               <p className="text-slate-400 font-mono">
                 No experts match "{searchQuery}"

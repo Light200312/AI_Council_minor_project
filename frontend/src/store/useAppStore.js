@@ -232,11 +232,12 @@ const useAppStore = create(
         );
       },
 
-      combatFinalizeVerdict: async ({ topic, playerTeam, opponentTeam, combatLog, roundResults, scores }) => {
+      combatFinalizeVerdict: async ({ sessionId, topic, playerTeam, opponentTeam, combatLog, roundResults, scores, mode = "combat" }) => {
         const token = get().token;
         if (!token) throw new Error("Not authenticated.");
         const { verdict } = await api.combatFinalizeVerdict(
           {
+            sessionId,
             topic,
             playerTeam,
             opponentTeam,
@@ -244,6 +245,7 @@ const useAppStore = create(
             roundResults,
             scores,
             ollamaModel: get().ollamaModel,
+            mode,
           },
           token
         );
@@ -284,10 +286,23 @@ const useAppStore = create(
           return;
         }
         try {
-          const { messages } = await api.listMessages(token, { topic, sessionId });
-          set({ messages: messages || [] });
+          const { messages, reports } = await api.listMessages(token, { topic, sessionId });
+          const savedReport = Array.isArray(reports) ? reports[0]?.verdict || null : null;
+          set((state) => ({
+            messages: messages || [],
+            gameState: {
+              ...state.gameState,
+              finalVerdict: savedReport,
+            },
+          }));
 	        } catch {
-	          set({ messages: [] });
+	          set((state) => ({
+              messages: [],
+              gameState: {
+                ...state.gameState,
+                finalVerdict: null,
+              },
+            }));
 	        }
       },
 
@@ -300,8 +315,11 @@ const useAppStore = create(
 
         set({ isLoadingHistory: true });
         try {
-          const { messages } = await api.listMessages(token);
+          const { messages, reports } = await api.listMessages(token);
           const grouped = new Map();
+          const reportMap = new Map(
+            (Array.isArray(reports) ? reports : []).map((report) => [`${report.sessionId}::${report.topic}`, report])
+          );
 
           (messages || []).forEach((msg) => {
             const sessionId = String(msg.sessionId || "");
@@ -327,6 +345,8 @@ const useAppStore = create(
             .map((entry) => ({
               ...entry,
               messages: entry.messages.sort((a, b) => Number(a.timestamp || 0) - Number(b.timestamp || 0)),
+              report: reportMap.get(`${entry.sessionId}::${entry.topic}`)?.verdict || null,
+              mode: reportMap.get(`${entry.sessionId}::${entry.topic}`)?.mode || "mentor",
             }))
             .sort((a, b) => b.lastTimestamp - a.lastTimestamp);
 
@@ -342,11 +362,12 @@ const useAppStore = create(
         set((state) => ({
           gameState: {
             ...state.gameState,
-            mode: "mentor",
+            mode: entry.report?.mode || entry.mode || "mentor",
             setupPhase: "ready",
             topic: entry.topic,
             sessionId: entry.sessionId,
             playerTeam: deriveMembersFromMessages(entry.messages || [], state.agents),
+            finalVerdict: entry.report || null,
           },
           messages: entry.messages || [],
           followupQuestion: "",

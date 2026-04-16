@@ -6,6 +6,7 @@
  */
 
 import { chooseOpponentTeam, chooseOpponentTurn, judgeRound, finalizeDebateVerdict } from "./combat.service.js";
+import DiscussionReport from "../message/discussionReport.model.js";
 
 /**
  * selectTeam - Choose AI opponent team for the debate
@@ -61,14 +62,39 @@ export async function judge(req, res) {
 /**
  * verdict - Determine overall combat winner and final assessment
  * WHY: Conclude debate session with comprehensive final analysis
- * HOW: Aggregate round scores, analyze performance, generate final verdict
+ * HOW: Aggregate round scores, analyze performance, generate final verdict (mode-specific)
  * RESULT: Combat winner, performance metrics, and detailed conclusion summary
  */
 export async function verdict(req, res) {
   try {
-    const { topic, playerTeam = [], opponentTeam = [], combatLog = [], roundResults = [], scores = {}, ollamaModel = "" } = req.body || {};
+    const { sessionId = "", topic, playerTeam = [], opponentTeam = [], combatLog = [], roundResults = [], scores = {}, ollamaModel = "", mode = "combat" } = req.body || {};
     if (!topic) return res.status(400).json({ message: "topic is required." });
-    const result = await finalizeDebateVerdict({ topic, playerTeam, opponentTeam, combatLog, roundResults, scores, ollamaModel });
-    return res.json({ verdict: result });
+    const generatedAt = Date.now();
+    const result = await finalizeDebateVerdict({ topic, playerTeam, opponentTeam, combatLog, roundResults, scores, ollamaModel, mode });
+    const verdict = {
+      ...result,
+      mode,
+      topic,
+      sessionId: String(sessionId || "").trim(),
+      generatedAt,
+    };
+
+    if (verdict.sessionId) {
+      await DiscussionReport.findOneAndUpdate(
+        { sessionId: verdict.sessionId, topic },
+        {
+          $set: {
+            mode,
+            verdict,
+            messageCount: Array.isArray(combatLog) ? combatLog.length : 0,
+            generatedAt,
+            updatedAt: generatedAt,
+          },
+        },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      );
+    }
+
+    return res.json({ verdict });
   } catch (error) { console.error("Combat final verdict failed:", error); return res.status(500).json({ message: "Failed to finalize verdict.", error: error.message }); }
 }

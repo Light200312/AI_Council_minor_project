@@ -11,16 +11,174 @@ import { ModeSelect } from "./components/ModeSelect";
 import { TopicSelect } from "./components/TopicSelect";
 import { MemberSelect } from "./components/MemberSelect";
 import { MentorDashboard } from "./components/MentorDashboard";
-import { ConcludeDebateModal } from "./components/ConcludeDebateModal";
 import { DiscussionHistory } from "./components/DiscussionHistory";
 import { AuthPage } from "./components/AuthPage";
 import { Button } from "./components/ui/Button";
+import ArgumentsView from "./components/ArgumentsView";
+import VerdictReportViewer from "./components/VerdictReportViewer";
 import LearnLawPage from "./components/LearnLawPage";
 import InterviewSimulatorPage from "./components/InterviewSimulatorPage";
 import MedicalConsultingPage from "./components/MedicalConsultingPage";
 import { STRATEGIES, MOCK_HEATMAP } from "./data/mockData";
 import { useAppStore } from "./store/useAppStore";
 import { downloadPdf } from "./lib/pdf";
+
+function buildReportCombatLog(mode, combatLog = [], messages = []) {
+  if (mode === "combat") return combatLog;
+
+  let round = 1;
+  let sawUserTurnInRound = false;
+
+  return (messages || [])
+    .filter((entry) => entry && entry.speakerId !== "orchestrator" && String(entry.text || "").trim())
+    .map((entry) => {
+      const normalized = {
+        id: entry.id,
+        speakerId: entry.speakerId,
+        speakerName: entry.speakerName,
+        speakerInitials: entry.speakerInitials,
+        isUser: Boolean(entry.isUser),
+        text: String(entry.text || "").trim(),
+        timestamp: entry.timestamp,
+        round,
+      };
+
+      if (entry.isUser) {
+        sawUserTurnInRound = true;
+      } else if (sawUserTurnInRound) {
+        sawUserTurnInRound = false;
+        round += 1;
+      }
+
+      return normalized;
+    });
+}
+
+function buildReportPdfSections({ verdict, mode, topic, playerTeam = [], opponentTeam = [], combatLog = [], roundResults = [] }) {
+  if (!verdict) return [];
+
+  const sections = [
+    { type: "title", text: `AI Council Report - ${String(mode || "session").replace(/-/g, " ")}` },
+    { type: "paragraph", text: `Topic: ${topic || "Untitled debate"}` },
+  ];
+
+  if (mode === "combat") {
+    sections.push(
+      { type: "paragraph", text: `Player Council: ${playerTeam.map((agent) => agent.name).join(", ") || "Unknown"}` },
+      { type: "paragraph", text: `Opponent Council: ${opponentTeam.map((agent) => agent.name).join(", ") || "Unknown"}` },
+      {
+        type: "paragraph",
+        text: `Winner: ${String(verdict?.winner || "tie").toUpperCase()} | Final Score: Player ${verdict?.finalScore?.player ?? 0} - Opponent ${verdict?.finalScore?.opponent ?? 0}`,
+      },
+      { type: "heading", text: "Final Summary" },
+      { type: "paragraph", text: verdict.summary || verdict.reasoning || "No final summary available." },
+      { type: "heading", text: "Judge Reasoning" },
+      { type: "paragraph", text: verdict.reasoning || "No judge reasoning available." },
+      { type: "heading", text: "Key Moments" },
+      {
+        type: "list",
+        items:
+          verdict?.keyMoments?.length
+            ? verdict.keyMoments
+            : roundResults.map((result) => `Round ${result.round}: ${result.reasoning || result.winner}`),
+      },
+      { type: "heading", text: "Player Strengths" },
+      { type: "list", items: verdict?.playerStrengths?.length ? verdict.playerStrengths : ["No strengths recorded."] },
+      { type: "heading", text: "Player Weaknesses" },
+      { type: "list", items: verdict?.playerWeaknesses?.length ? verdict.playerWeaknesses : ["No weaknesses recorded."] },
+      { type: "heading", text: "Opponent Strengths" },
+      { type: "list", items: verdict?.opponentStrengths?.length ? verdict.opponentStrengths : ["No strengths recorded."] },
+      { type: "heading", text: "Opponent Weaknesses" },
+      { type: "list", items: verdict?.opponentWeaknesses?.length ? verdict.opponentWeaknesses : ["No weaknesses recorded."] },
+      { type: "heading", text: "Transcript Highlights" },
+      {
+        type: "list",
+        items: combatLog.map((entry) => `${entry.speakerName}: ${String(entry.text || "").replace(/\s+/g, " ").trim()}`),
+      }
+    );
+    return sections;
+  }
+
+  if (verdict.conclusion) {
+    sections.push({ type: "heading", text: "Conclusion" }, { type: "paragraph", text: verdict.conclusion });
+  }
+  if (verdict.overallAssessment) {
+    sections.push({ type: "heading", text: "Overall Assessment" }, { type: "paragraph", text: verdict.overallAssessment });
+  }
+  if (verdict.temporaryDiagnosis) {
+    sections.push({ type: "heading", text: "Temporary Diagnosis" }, { type: "paragraph", text: verdict.temporaryDiagnosis });
+  }
+  if (verdict.legalAnalysis) {
+    sections.push({ type: "heading", text: "Legal Analysis" }, { type: "paragraph", text: verdict.legalAnalysis });
+  }
+  if (verdict.eventSummary) {
+    sections.push({ type: "heading", text: "Event Summary" }, { type: "paragraph", text: verdict.eventSummary });
+  }
+  if (verdict.topicOverview) {
+    sections.push({ type: "heading", text: "Topic Overview" }, { type: "paragraph", text: verdict.topicOverview });
+  }
+
+  const listGroups = [
+    ["strengths", "Strengths"],
+    ["improvements", "Areas for Improvement"],
+    ["advices", "Actionable Advice"],
+    ["keyTakeaways", "Key Takeaways"],
+    ["flaws", "Flaws to Fix"],
+    ["technicalAdvice", "Technical Advice"],
+    ["communicationAdvice", "Communication Advice"],
+    ["nextSteps", "Next Steps"],
+    ["urgentConcerns", "Urgent Concerns"],
+    ["immediateActions", "Immediate Actions"],
+    ["recommendedSpecialists", "Recommended Specialists"],
+    ["preventiveMeasures", "Preventive Measures"],
+    ["argumentsFor", "Arguments Supporting"],
+    ["argumentsAgainst", "Counterarguments"],
+    ["relevantLaws", "Applicable Laws"],
+    ["caseReferences", "Case References"],
+    ["references", "References"],
+    ["commonThemes", "Common Themes"],
+    ["divergentViews", "Divergent Views"],
+  ];
+
+  listGroups.forEach(([key, label]) => {
+    if (Array.isArray(verdict[key]) && verdict[key].length) {
+      sections.push({ type: "heading", text: label }, { type: "list", items: verdict[key] });
+    }
+  });
+
+  if (Array.isArray(verdict.keyPerspectives) && verdict.keyPerspectives.length) {
+    sections.push({
+      type: "heading",
+      text: "Key Perspectives",
+    });
+    sections.push({
+      type: "list",
+      items: verdict.keyPerspectives.map((item) => `${item.figure}: ${item.view}${item.era ? ` (${item.era})` : ""}`),
+    });
+  }
+
+  if (Array.isArray(verdict.characterAnalysis) && verdict.characterAnalysis.length) {
+    sections.push({
+      type: "heading",
+      text: "Character Analysis",
+    });
+    sections.push({
+      type: "list",
+      items: verdict.characterAnalysis.map(
+        (item) => `${item.character}: ${item.perspective}${item.loreBackground ? ` | ${item.loreBackground}` : ""}`
+      ),
+    });
+  }
+
+  ["confidenceLevel", "doctorVisitUrgency", "whenToSeeFully", "recommendation", "conclusions", "historicalContext", "legacyAndImpact", "worldbuildingContext", "consensusAndConflict", "loreImplications", "synthesisReport", "disclaimer"].forEach((key) => {
+    if (verdict[key]) {
+      const label = key.replace(/([A-Z])/g, " $1").replace(/^./, (char) => char.toUpperCase());
+      sections.push({ type: "heading", text: label }, { type: "paragraph", text: verdict[key] });
+    }
+  });
+
+  return sections;
+}
 
 function App() {
   // Global app state + actions from the central store.
@@ -62,9 +220,11 @@ function App() {
   const updateGameState = useAppStore((state) => state.updateGameState);
   const lastVerdict = useAppStore((state) => state.gameState.lastVerdict);
   const roundResults = useAppStore((state) => state.gameState.roundResults);
+  const finalVerdict = useAppStore((state) => state.gameState.finalVerdict);
 
   // Local UI state for tabs, drawers, editor, and combat UX.
   const [activeTab, setActiveTab] = useState("arena");
+  const [activeArenaPanel, setActiveArenaPanel] = useState("session");
   const [isPersonaEditorOpen, setIsPersonaEditorOpen] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [activeSpeakerId, setActiveSpeakerId] = useState();
@@ -76,14 +236,15 @@ function App() {
   const [selectedSpeakerId, setSelectedSpeakerId] = useState(null);
   const [previewText, setPreviewText] = useState("");
   const [previewLoading, setPreviewLoading] = useState(false);
-  const [isExportingVerdict, setIsExportingVerdict] = useState(false);
   const [tweakInstruction, setTweakInstruction] = useState("");
   const [showRightSidebar, setShowRightSidebar] = useState(true);
-  const [isConcludeDebateOpen, setIsConcludeDebateOpen] = useState(false);
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [reportError, setReportError] = useState("");
   const userRowRefs = useRef([]);
   const opponentRowRefs = useRef([]);
   const [rowHeights, setRowHeights] = useState([]);
   const [showSetupHistory, setShowSetupHistory] = useState(false);
+  const reportCacheKeyRef = useRef("");
 
   // Bootstrap persisted session on first load.
   useEffect(() => {
@@ -134,6 +295,39 @@ function App() {
     });
     setRowHeights(heights);
   }, [roundPairs, previewText, gameState.combatLog.length]);
+
+  const reportCombatLog = useMemo(
+    () => buildReportCombatLog(gameState.mode, gameState.combatLog, messages),
+    [gameState.mode, gameState.combatLog, messages]
+  );
+  const reportCacheKey = useMemo(
+    () => `${gameState.sessionId || "session"}::${gameState.mode || "mode"}::${gameState.topic || "topic"}`,
+    [gameState.sessionId, gameState.mode, gameState.topic]
+  );
+  const hasReportData =
+    gameState.mode === "combat"
+      ? roundResults.length > 0 || reportCombatLog.length > 1
+      : reportCombatLog.length > 0;
+  const hasCachedReport = Boolean(finalVerdict) && reportCacheKeyRef.current === reportCacheKey;
+  const mentorStyleModes = [
+    "mentor",
+    "historical",
+    "fantasy",
+    "learn-law",
+    "interview-simulator",
+    "medical-consulting",
+  ];
+
+  useEffect(() => {
+    if (
+      finalVerdict &&
+      String(finalVerdict.sessionId || "") === String(gameState.sessionId || "") &&
+      String(finalVerdict.topic || "") === String(gameState.topic || "") &&
+      String(finalVerdict.mode || gameState.mode || "") === String(gameState.mode || "")
+    ) {
+      reportCacheKeyRef.current = reportCacheKey;
+    }
+  }, [finalVerdict, reportCacheKey, gameState.sessionId, gameState.topic, gameState.mode]);
 
   // Transition from coin toss into the first combat round.
   const handleCoinTossComplete = (winner) => {
@@ -370,6 +564,7 @@ function App() {
   // Switch left sidebar tab and optionally load history.
   const handleTabChange = (tabId) => {
     setActiveTab(tabId);
+    if (tabId !== "arena") setActiveArenaPanel("session");
     if (tabId === "history") {
       loadDiscussionHistory();
     }
@@ -378,114 +573,208 @@ function App() {
   // Handle feature selection from the Features section in Sidebar
   const handleFeatureSelect = (featureId) => {
     setActiveTab(featureId);
+    setActiveArenaPanel("session");
+    // Set the mode to match the feature
+    if (featureId === "learn-law") {
+      setMode("learn-law");
+    } else if (featureId === "interview-simulator") {
+      setMode("interview-simulator");
+    } else if (featureId === "medical-consulting") {
+      setMode("medical-consulting");
+    }
   };
 
   // Handle agent selection from feature pages and start debate
-  const handleSelectExperts = (selectedExperts) => {
-    // Set player team and prepare for session start
-    selectedExperts.forEach((expertId) => {
-      toggleMember(expertId);
+  const handleSelectExperts = (selectedExperts, topic, mode) => {
+    // Set player team (selectedExperts are agent objects from the page)
+    const expertIds = selectedExperts.map((e) => (typeof e === "object" ? e.id : e));
+    expertIds.forEach((expertId) => {
+      if (!gameState.playerTeam.find((m) => m.id === expertId)) {
+        toggleMember(expertId);
+      }
     });
-    // After selection, you could transition to session start
-    // For now, this sets the selected experts in gameState.playerTeam
+    // Set topic and mode, transition to discussion view (like mentor mode)
+    setTopic(topic);
+    setMode(mode || "learn-law");
+    // Clear active tab to show the main arena view
+    setActiveTab("arena");
   };
 
-  const handleSelectInterviewers = (selectedInterviewers) => {
-    // Set player team with selected interviewers
-    selectedInterviewers.forEach((interviewerId) => {
-      toggleMember(interviewerId);
+  const handleSelectInterviewers = (selectedInterviewers, topic, mode) => {
+    // Set player team (selectedInterviewers are agent objects from the page)
+    const interviewerIds = selectedInterviewers.map((i) => (typeof i === "object" ? i.id : i));
+    interviewerIds.forEach((interviewerId) => {
+      if (!gameState.playerTeam.find((m) => m.id === interviewerId)) {
+        toggleMember(interviewerId);
+      }
     });
+    // Set topic and mode, transition to discussion view
+    setTopic(topic);
+    setMode(mode || "interview-simulator");
+    // Clear active tab to show the main arena view
+    setActiveTab("arena");
   };
 
-  const handleSelectDoctors = (selectedDoctors) => {
-    // Set player team with selected medical specialists
-    selectedDoctors.forEach((doctorId) => {
-      toggleMember(doctorId);
+  const handleSelectDoctors = (selectedDoctors, topic, mode) => {
+    // Set player team (selectedDoctors are agent objects from the page)
+    const doctorIds = selectedDoctors.map((d) => (typeof d === "object" ? d.id : d));
+    doctorIds.forEach((doctorId) => {
+      if (!gameState.playerTeam.find((m) => m.id === doctorId)) {
+        toggleMember(doctorId);
+      }
     });
+    // Set topic and mode, transition to discussion view
+    setTopic(topic);
+    setMode(mode || "medical-consulting");
+    // Clear active tab to show the main arena view
+    setActiveTab("arena");
   };
 
-  const handleExportVerdict = async () => {
-    if (gameState.mode !== "combat") throw new Error("Verdict export is only available in combat mode.");
-    if (!roundResults.length && gameState.combatLog.length < 2) {
-      throw new Error("Complete at least one exchange before exporting a verdict.");
+  const handleViewReport = async ({ forceRefresh = false } = {}) => {
+    setActiveArenaPanel("report");
+    if (!hasReportData) {
+      setReportError("Complete a few discussion turns before generating a report.");
+      return;
     }
 
-    setIsExportingVerdict(true);
+    if (hasCachedReport && !forceRefresh) {
+      setReportError("");
+      return;
+    }
+
+    setReportError("");
+    setIsGeneratingReport(true);
     try {
-      const verdict = await combatFinalizeVerdict({
+      await combatFinalizeVerdict({
+        sessionId: gameState.sessionId,
         topic: gameState.topic,
-        playerTeam: gameState.playerTeam,
-        opponentTeam: gameState.opponentTeam,
-        combatLog: gameState.combatLog,
-        roundResults,
+        playerTeam: gameState.mode === "combat" ? gameState.playerTeam : [],
+        opponentTeam: gameState.mode === "combat" ? gameState.opponentTeam : gameState.playerTeam,
+        combatLog: reportCombatLog,
+        roundResults: gameState.mode === "combat" ? roundResults : [],
         scores: {
           playerScore: gameState.playerScore,
           opponentScore: gameState.opponentScore,
         },
+        mode: gameState.mode,
       });
-
-      const sections = [
-        { type: "title", text: `AI Council Verdict - Session ${gameState.sessionId || "N/A"}` },
-        { type: "paragraph", text: `Topic: ${gameState.topic}` },
-        {
-          type: "paragraph",
-          text: `Player Council: ${gameState.playerTeam.map((agent) => agent.name).join(", ") || "Unknown"}`,
-        },
-        {
-          type: "paragraph",
-          text: `Opponent Council: ${gameState.opponentTeam.map((agent) => agent.name).join(", ") || "Unknown"}`,
-        },
-        {
-          type: "paragraph",
-          text: `Winner: ${String(verdict?.winner || "tie").toUpperCase()} | Final Score: Player ${verdict?.finalScore?.player ?? gameState.playerScore} - Opponent ${verdict?.finalScore?.opponent ?? gameState.opponentScore}`,
-        },
-        {
-          type: "paragraph",
-          text: `Confidence: ${Math.round(Number(verdict?.confidence || 0) * 100)}%`,
-        },
-        { type: "heading", text: "Final Summary" },
-        { type: "paragraph", text: verdict?.summary || verdict?.reasoning || "No final summary available." },
-        { type: "heading", text: "Judge Reasoning" },
-        { type: "paragraph", text: verdict?.reasoning || "No judge reasoning available." },
-        { type: "heading", text: "Key Moments" },
-        {
-          type: "list",
-          items:
-            verdict?.keyMoments?.length
-              ? verdict.keyMoments
-              : roundResults.map((result) => `Round ${result.round}: ${result.reasoning || result.winner}`),
-        },
-        { type: "heading", text: "Player Strengths" },
-        { type: "list", items: verdict?.playerStrengths?.length ? verdict.playerStrengths : ["No strengths recorded."] },
-        { type: "heading", text: "Player Weaknesses" },
-        { type: "list", items: verdict?.playerWeaknesses?.length ? verdict.playerWeaknesses : ["No weaknesses recorded."] },
-        { type: "heading", text: "Opponent Strengths" },
-        { type: "list", items: verdict?.opponentStrengths?.length ? verdict.opponentStrengths : ["No strengths recorded."] },
-        { type: "heading", text: "Opponent Weaknesses" },
-        { type: "list", items: verdict?.opponentWeaknesses?.length ? verdict.opponentWeaknesses : ["No weaknesses recorded."] },
-        { type: "heading", text: "Round Verdicts" },
-        {
-          type: "list",
-          items: roundResults.map(
-            (result) =>
-              `Round ${result.round}: winner=${String(result.winner || "tie").toUpperCase()}, playerScore=${result.playerScore}, opponentScore=${result.opponentScore}, reasoning=${result.reasoning || "No reasoning"}`
-          ),
-        },
-        { type: "heading", text: "Transcript Highlights" },
-        {
-          type: "list",
-          items: gameState.combatLog.map(
-            (entry) => `${entry.speakerName}: ${String(entry.text || "").replace(/\s+/g, " ").trim()}`
-          ),
-        },
-      ];
-
-      downloadPdf(`verdict-${gameState.sessionId || "session"}.pdf`, sections);
-      return verdict;
+      reportCacheKeyRef.current = reportCacheKey;
+    } catch (error) {
+      setReportError(error.message || "Could not generate the report right now.");
     } finally {
-      setIsExportingVerdict(false);
+      setIsGeneratingReport(false);
     }
   };
+
+  const handleDownloadReportPdf = () => {
+    if (!hasCachedReport) {
+      setReportError("Generate the report once before downloading the PDF.");
+      return;
+    }
+
+    const safeTopic = String(gameState.topic || "session")
+      .replace(/[^a-z0-9]+/gi, "-")
+      .replace(/^-+|-+$/g, "")
+      .toLowerCase();
+    const sections = buildReportPdfSections({
+      verdict: finalVerdict,
+      mode: gameState.mode,
+      topic: gameState.topic,
+      playerTeam: gameState.playerTeam,
+      opponentTeam: gameState.opponentTeam,
+      combatLog: reportCombatLog,
+      roundResults,
+    });
+
+    downloadPdf(`report-${safeTopic || "session"}.pdf`, sections);
+  };
+
+  useEffect(() => {
+    setActiveArenaPanel("session");
+    setReportError("");
+    reportCacheKeyRef.current = "";
+  }, [gameState.mode, gameState.topic, gameState.setupPhase, gameState.sessionId]);
+
+  useEffect(() => {
+    if (gameState.phase === "complete" && hasReportData && !hasCachedReport) {
+      handleViewReport();
+    }
+  }, [gameState.phase]);
+
+  const renderArenaPanelTabs = () => (
+    <div className="mb-6 flex flex-wrap items-center gap-2">
+      {[
+        { id: "session", label: gameState.mode === "combat" ? "Live Debate" : "Discussion" },
+        { id: "arguments", label: "Arguments" },
+        { id: "report", label: "Report" },
+      ].map((tab) => (
+        <button
+          key={tab.id}
+          type="button"
+          onClick={() => {
+            setActiveArenaPanel(tab.id);
+            if (tab.id === "report" && !hasCachedReport && !isGeneratingReport && hasReportData) {
+              handleViewReport();
+            }
+          }}
+          className={`rounded-full border px-4 py-2 text-sm font-medium transition ${
+            activeArenaPanel === tab.id
+              ? "border-slate-900 bg-slate-900 text-white dark:border-white dark:bg-white dark:text-slate-900"
+              : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+          }`}
+        >
+          {tab.label}
+        </button>
+      ))}
+    </div>
+  );
+
+  const renderReportPanel = () => (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">
+            Mode-Specific Report
+          </p>
+          <h2 className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">{gameState.topic || "Untitled debate"}</h2>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            AI-generated analysis tailored to {gameState.mode.replace(/-/g, " ")}.
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <Button
+            variant="secondary"
+            onClick={() => handleViewReport({ forceRefresh: true })}
+            loading={isGeneratingReport}
+            disabled={!hasReportData}
+          >
+            Refresh Report
+          </Button>
+          <Button variant="primary" onClick={handleDownloadReportPdf} disabled={!hasCachedReport || isGeneratingReport}>
+            Download PDF
+          </Button>
+        </div>
+      </div>
+
+      {reportError ? (
+        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
+          {reportError}
+        </div>
+      ) : null}
+
+      {!hasReportData ? (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
+          Add a few arguments first, then open the report to generate an AI summary and analysis.
+        </div>
+      ) : isGeneratingReport && !hasCachedReport ? (
+        <div className="rounded-2xl border border-slate-200 bg-white px-5 py-8 text-center text-sm text-slate-500 shadow-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
+          Generating report...
+        </div>
+      ) : (
+        <VerdictReportViewer verdict={hasCachedReport ? finalVerdict : null} mode={gameState.mode} topic={gameState.topic} />
+      )}
+    </div>
+  );
 
   // Auth gate: show sign-in when no token exists.
   if (!token) {
@@ -600,9 +889,8 @@ function App() {
 
       <div className="flex-1 ml-64 flex flex-col h-full overflow-hidden relative dark:bg-slate-900">
         <ControlBar
-          exportVerdict={handleExportVerdict}
-          isExportingVerdict={isExportingVerdict}
-          onConcludeDebate={() => setIsConcludeDebateOpen(true)}
+          onConcludeDebate={handleViewReport}
+          isGeneratingReport={isGeneratingReport}
         />
         <div className="absolute right-6 top-15 z-30">
           <button
@@ -622,27 +910,51 @@ function App() {
                 setActiveTab("arena");
               }}
             />
-          ) : activeTab === "learn-law" ? (
+          ) : activeTab === "learn-law" && gameState.mode !== "learn-law" ? (
             <LearnLawPage
               onSelectExperts={handleSelectExperts}
               onClose={() => setActiveTab("arena")}
             />
-          ) : activeTab === "interview-simulator" ? (
+          ) : activeTab === "interview-simulator" && gameState.mode !== "interview-simulator" ? (
             <InterviewSimulatorPage
               onSelectInterviewers={handleSelectInterviewers}
               onClose={() => setActiveTab("arena")}
             />
-          ) : activeTab === "medical-consulting" ? (
+          ) : activeTab === "medical-consulting" && gameState.mode !== "medical-consulting" ? (
             <MedicalConsultingPage
               onSelectDoctors={handleSelectDoctors}
               onClose={() => setActiveTab("arena")}
             />
-          ) : gameState.mode === "mentor" || gameState.mode === "historical" || gameState.mode === "fantasy" ? (
-            <MentorDashboard topic={gameState.topic} members={gameState.playerTeam} />
+          ) : mentorStyleModes.includes(gameState.mode) ? (
+            <>
+              {renderArenaPanelTabs()}
+              {activeArenaPanel === "arguments" ? (
+                <ArgumentsView
+                  combatLog={reportCombatLog}
+                  playerTeam={[]}
+                  opponentTeam={gameState.playerTeam}
+                  topic={gameState.topic}
+                />
+              ) : activeArenaPanel === "report" ? (
+                renderReportPanel()
+              ) : (
+                <MentorDashboard topic={gameState.topic} members={gameState.playerTeam} />
+              )}
+            </>
           ) : (
             <>
+              {renderArenaPanelTabs()}
               {/* Drafting, results, and live combat views */}
-              {gameState.phase === "draft" ? (
+              {activeArenaPanel === "arguments" ? (
+                <ArgumentsView
+                  combatLog={reportCombatLog}
+                  playerTeam={gameState.playerTeam}
+                  opponentTeam={gameState.opponentTeam}
+                  topic={gameState.topic}
+                />
+              ) : activeArenaPanel === "report" ? (
+                renderReportPanel()
+              ) : gameState.phase === "draft" ? (
                 <DraftBoard
                   availableAgents={agents}
                   selectedAgents={gameState.playerTeam.map((a) => a.id)}
@@ -932,13 +1244,6 @@ function App() {
           await reloadAgents();
           toggleMember(agent.id);
         }}
-      />
-      <ConcludeDebateModal
-        isOpen={isConcludeDebateOpen}
-        onClose={() => setIsConcludeDebateOpen(false)}
-        topic={gameState.topic}
-        messages={messages}
-        members={gameState.playerTeam}
       />
     </div>
   );

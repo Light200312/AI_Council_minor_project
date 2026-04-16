@@ -14,7 +14,7 @@ function AgentCard({
     className={`transition-all duration-200 ${isSelected ? "ring-2 ring-slate-900 dark:ring-slate-200 ring-offset-2 ring-offset-slate-100 dark:ring-offset-slate-900" : ""}`}
   >
 
-      <div onClick={onClick} className="h-full flex flex-col">
+      <div onClick={onClick} className="h-full mt-6 flex flex-col">
         <CardHeader className="pb-2">
           <div className="flex justify-between items-start">
             <div className="flex items-center gap-3">

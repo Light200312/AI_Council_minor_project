@@ -14,7 +14,7 @@ import {
   Stethoscope
 } from "lucide-react";
 import { DEBATE_TEMPERATURES } from "../data/mockData";
-
+import {useAppStore } from '../store/useAppStore'
 // Sidebar surfaces mode navigation, active session context, and user actions.
 const NAV_ITEMS = [
   {
@@ -86,6 +86,7 @@ function Sidebar({
   theme,
   onThemeToggle
 }) {
+  const { user } = useAppStore();
   const tempInfo = currentTemperature ? DEBATE_TEMPERATURES.find((t) => t.id === currentTemperature) : null;
   return <div className="w-64 h-full bg-slate-50 dark:bg-slate-950 border-r border-slate-200 dark:border-slate-700 flex flex-col fixed left-0 top-0 z-10">
       {
@@ -216,6 +217,30 @@ function Sidebar({
             </button>
           </div>
         </div>
+           {
+    /* Features Section */
+  }
+        <div>
+          <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-2 px-1">
+            Features
+          </span>
+          <div className="space-y-1">
+            {FEATURE_ITEMS.map((item) => {
+    const Icon = item.icon;
+    const isActive = activeTab === item.id;
+    return <button
+      key={item.id}
+      onClick={() => onFeatureSelect && onFeatureSelect(item.id)}
+      className={`w-full flex items-center gap-3 px-4 py-3 rounded-md text-sm font-medium transition-colors group ${isActive ? "bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white" : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"}`}
+      title={item.description}
+    >
+
+                  <Icon className="w-5 h-5" />
+                  <span className="flex-1 text-left">{item.label}</span>
+                </button>;
+  })}
+          </div>
+        </div>
 
         {
     /* Tools Section */
@@ -241,30 +266,7 @@ function Sidebar({
           </div>
         </div>
 
-        {
-    /* Features Section */
-  }
-        <div>
-          <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-2 px-1">
-            Features
-          </span>
-          <div className="space-y-1">
-            {FEATURE_ITEMS.map((item) => {
-    const Icon = item.icon;
-    const isActive = activeTab === item.id;
-    return <button
-      key={item.id}
-      onClick={() => onFeatureSelect && onFeatureSelect(item.id)}
-      className={`w-full flex items-center gap-3 px-4 py-3 rounded-md text-sm font-medium transition-colors group ${isActive ? "bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white" : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"}`}
-      title={item.description}
-    >
-
-                  <Icon className="w-5 h-5" />
-                  <span className="flex-1 text-left">{item.label}</span>
-                </button>;
-  })}
-          </div>
-        </div>
+     
       </nav>
 
       {
@@ -283,10 +285,10 @@ function Sidebar({
           <div className="w-8 h-8 rounded-full bg-slate-300 dark:bg-slate-600 border border-slate-400 dark:border-slate-500" />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-slate-900 dark:text-white truncate">
-              Director Alpha
+             {user?.username || "User"}
             </p>
             <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-              Level 42 Strategist
+              Level X Strategist
             </p>
           </div>
         </div>
