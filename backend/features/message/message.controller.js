@@ -1,6 +1,19 @@
+/**
+ * Message Controller
+ * WHY: Handle message storage and retrieval for conversation continuity
+ * HOW: Query MongoDB for messages by session/topic, validate inputs, sanitize data
+ * RESULT: JSON response with stored messages or error status
+ */
+
 import Message from "./message.model.js";
 import { generateMessageId, sanitizeStringArray } from "../../shared/helpers.js";
 
+/**
+ * listMessages - Retrieve stored messages by session and topic
+ * WHY: Allow users to restore conversation history across sessions
+ * HOW: Filter database by sessionId and topic, sort chronologically
+ * RESULT: Array of message objects with speaker info and text
+ */
 export async function listMessages(req, res) {
   try {
     const { sessionId, topic } = req.query || {};
@@ -12,6 +25,13 @@ export async function listMessages(req, res) {
   } catch (error) { console.error("Message list failed:", error); return res.status(500).json({ message: "Failed to fetch messages.", error: error.message }); }
 }
 
+
+/**
+ * createMessage - Store a new message in the conversation
+ * WHY: Persist messages for audit trail and session history
+ * HOW: Validate required fields, sanitize arrays, generate unique ID, save to DB
+ * RESULT: Created message object with generated ID and timestamp
+ */
 export async function createMessage(req, res) {
   try {
     const { sessionId, topic, sessionParticipantIds = [], sessionParticipants = [], speakerId, speakerName, speakerInitials, isUser, text, timestamp } = req.body || {};

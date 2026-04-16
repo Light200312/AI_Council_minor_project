@@ -1,6 +1,19 @@
+/**
+ * Auth Controller
+ * WHY: Handle user registration, login, and session management
+ * HOW: Hash passwords, verify credentials, issue JWT tokens, manage user data
+ * RESULT: Auth tokens and user profile for authenticated API access
+ */
+
 import User from "./user.model.js";
 import { hashPassword, issueToken, verifyPassword } from "./auth.utils.js";
 
+/**
+ * register - Create new user account
+ * WHY: Allow new users to access the system
+ * HOW: Validate input, hash password, check for duplicates, create user record
+ * RESULT: JWT token and user object for immediate authenticated session
+ */
 export async function register(req, res) {
   try {
     const { username, email, password } = req.body || {};
@@ -14,6 +27,13 @@ export async function register(req, res) {
   } catch (error) { console.error("Auth register failed:", error); return res.status(500).json({ message: "Registration failed.", error: error.message }); }
 }
 
+
+/**
+ * login - Authenticate user and issue session token
+ * WHY: Verify user identity and start authenticated sessions
+ * HOW: Lookup user by email/username, verify password hash, issue JWT
+ * RESULT: JWT token for authenticated requests, user profile data
+ */
 export async function login(req, res) {
   try {
     const { identifier, email, username, password } = req.body || {};
@@ -26,6 +46,13 @@ export async function login(req, res) {
   } catch (error) { console.error("Auth login failed:", error); return res.status(500).json({ message: "Login failed.", error: error.message }); }
 }
 
+
+/**
+ * me - Retrieve current authenticated user profile
+ * WHY: Allow users to view their own account info
+ * HOW: Extract user ID from JWT token, lookup user by ID
+ * RESULT: User profile (ID, username, email) for authenticated requester
+ */
 export async function me(req, res) {
   try {
     const user = await User.findById(req.auth.sub).select("_id username email");

@@ -1,5 +1,18 @@
+/**
+ * Combat Controller
+ * WHY: Manage debate/combat mode interactions between player and AI opponents
+ * HOW: Orchestrate opponent selection, turn logic, judgment, and verdict
+ * RESULT: Combat session data with team selections, judgments, and final verdict
+ */
+
 import { chooseOpponentTeam, chooseOpponentTurn, judgeRound, finalizeDebateVerdict } from "./combat.service.js";
 
+/**
+ * selectTeam - Choose AI opponent team for the debate
+ * WHY: Initialize combat with balanced opponent selection
+ * HOW: LLM-based selection from candidate agents based on difficulty and topic
+ * RESULT: Opponent team IDs and agent profiles for this combat session
+ */
 export async function selectTeam(req, res) {
   try {
     const { topic, candidateIds = [], count = 3, difficulty = "standard", ollamaModel = "" } = req.body || {};
@@ -9,6 +22,13 @@ export async function selectTeam(req, res) {
   } catch (error) { console.error("Combat select-team failed:", error); return res.status(500).json({ message: "Failed to select opponent team.", error: error.message }); }
 }
 
+
+/**
+ * nextTurn - Generate opponent response for current combat turn
+ * WHY: Keep debate moving with intelligent opponent arguments
+ * HOW: Analyze user argument, select opposing agent, generate counter-argument
+ * RESULT: Opponent agent ID and their tactical argument response
+ */
 export async function nextTurn(req, res) {
   try {
     const { topic, opponentTeamIds = [], userArgument = "", strategies = [], difficulty = "standard", ollamaModel = "" } = req.body || {};
@@ -20,6 +40,13 @@ export async function nextTurn(req, res) {
   } catch (error) { console.error("Combat next-turn failed:", error); return res.status(500).json({ message: "Failed to select opponent turn.", error: error.message }); }
 }
 
+
+/**
+ * judge - Evaluate and score a single debate round
+ * WHY: Provide objective assessment of argument quality
+ * HOW: LLM comparison of both arguments on topic relevance, logic, persuasion
+ * RESULT: Round judgment with scores, reasoning, and winner determination
+ */
 export async function judge(req, res) {
   try {
     const { topic, playerArgument, opponentArgument, ollamaModel = "" } = req.body || {};
@@ -30,6 +57,13 @@ export async function judge(req, res) {
   } catch (error) { console.error("Combat judge failed:", error); return res.status(500).json({ message: "Failed to judge round.", error: error.message }); }
 }
 
+
+/**
+ * verdict - Determine overall combat winner and final assessment
+ * WHY: Conclude debate session with comprehensive final analysis
+ * HOW: Aggregate round scores, analyze performance, generate final verdict
+ * RESULT: Combat winner, performance metrics, and detailed conclusion summary
+ */
 export async function verdict(req, res) {
   try {
     const { topic, playerTeam = [], opponentTeam = [], combatLog = [], roundResults = [], scores = {}, ollamaModel = "" } = req.body || {};

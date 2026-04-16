@@ -1,3 +1,10 @@
+/**
+ * Agent Routes
+ * WHY: Define CRUD endpoints for agent management and interaction
+ * HOW: RESTful operations (GET/POST/PUT/DELETE) plus special routes for suggestion/finding/responding
+ * RESULT: Complete agent lifecycle management and execution endpoints
+ */
+
 import express from "express";
 import authGuard from "../../shared/authGuard.js";
 import {

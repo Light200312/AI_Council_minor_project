@@ -1,3 +1,10 @@
+/**
+ * Message Model
+ * WHY: Define data structure for persisting conversation messages
+ * HOW: mongoose schema with sessionId/topic indexing for fast queries
+ * RESULT: Message collection with speaker identity and conversation context
+ */
+
 import mongoose from "mongoose";
 
 const messageSchema = new mongoose.Schema({
