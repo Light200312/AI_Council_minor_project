@@ -245,6 +245,7 @@ function App() {
   const [rowHeights, setRowHeights] = useState([]);
   const [showSetupHistory, setShowSetupHistory] = useState(false);
   const reportCacheKeyRef = useRef("");
+  const previousPhaseRef = useRef(gameState.phase);
 
   // Bootstrap persisted session on first load.
   useEffect(() => {
@@ -304,11 +305,19 @@ function App() {
     () => `${gameState.sessionId || "session"}::${gameState.mode || "mode"}::${gameState.topic || "topic"}`,
     [gameState.sessionId, gameState.mode, gameState.topic]
   );
+  const hasStoredReportForCurrentSession = useMemo(
+    () =>
+      Boolean(finalVerdict) &&
+      String(finalVerdict.sessionId || "") === String(gameState.sessionId || "") &&
+      String(finalVerdict.topic || "") === String(gameState.topic || "") &&
+      String(finalVerdict.mode || gameState.mode || "") === String(gameState.mode || ""),
+    [finalVerdict, gameState.sessionId, gameState.topic, gameState.mode]
+  );
   const hasReportData =
     gameState.mode === "combat"
       ? roundResults.length > 0 || reportCombatLog.length > 1
       : reportCombatLog.length > 0;
-  const hasCachedReport = Boolean(finalVerdict) && reportCacheKeyRef.current === reportCacheKey;
+  const hasCachedReport = hasStoredReportForCurrentSession || reportCacheKeyRef.current === reportCacheKey;
   const mentorStyleModes = [
     "mentor",
     "historical",
@@ -319,15 +328,10 @@ function App() {
   ];
 
   useEffect(() => {
-    if (
-      finalVerdict &&
-      String(finalVerdict.sessionId || "") === String(gameState.sessionId || "") &&
-      String(finalVerdict.topic || "") === String(gameState.topic || "") &&
-      String(finalVerdict.mode || gameState.mode || "") === String(gameState.mode || "")
-    ) {
+    if (hasStoredReportForCurrentSession) {
       reportCacheKeyRef.current = reportCacheKey;
     }
-  }, [finalVerdict, reportCacheKey, gameState.sessionId, gameState.topic, gameState.mode]);
+  }, [hasStoredReportForCurrentSession, reportCacheKey]);
 
   // Transition from coin toss into the first combat round.
   const handleCoinTossComplete = (winner) => {
@@ -692,14 +696,18 @@ function App() {
   useEffect(() => {
     setActiveArenaPanel("session");
     setReportError("");
-    reportCacheKeyRef.current = "";
+    if (!hasStoredReportForCurrentSession) {
+      reportCacheKeyRef.current = "";
+    }
   }, [gameState.mode, gameState.topic, gameState.setupPhase, gameState.sessionId]);
 
   useEffect(() => {
-    if (gameState.phase === "complete" && hasReportData && !hasCachedReport) {
+    const previousPhase = previousPhaseRef.current;
+    if (previousPhase !== "complete" && gameState.phase === "complete" && hasReportData && !hasCachedReport) {
       handleViewReport();
     }
-  }, [gameState.phase]);
+    previousPhaseRef.current = gameState.phase;
+  }, [gameState.phase, hasReportData, hasCachedReport]);
 
   const renderArenaPanelTabs = () => (
     <div className="mb-6 flex flex-wrap items-center gap-2">

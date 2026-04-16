@@ -364,6 +364,7 @@ const useAppStore = create(
             ...state.gameState,
             mode: entry.report?.mode || entry.mode || "mentor",
             setupPhase: "ready",
+            phase: "draft",
             topic: entry.topic,
             sessionId: entry.sessionId,
             playerTeam: deriveMembersFromMessages(entry.messages || [], state.agents),
