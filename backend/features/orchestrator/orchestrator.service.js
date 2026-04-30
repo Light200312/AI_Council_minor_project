@@ -14,6 +14,7 @@
 
 import Agent from "../agent/agent.model.js";
 import { runAgentStep } from "../agent/agentRuntime.service.js";
+import { verifyClaim } from "../../services/mcpClient.js";
 import { resolveAgentModelConfig } from "../../shared/agentModelRegistry.js";
 import { callOrchestratorLLM } from "../../shared/llmClient.js";
 import { truncateText, generateMessageId } from "../../shared/helpers.js";
@@ -37,6 +38,15 @@ import { truncateText, generateMessageId } from "../../shared/helpers.js";
 function formatMessages(messages = [], limit = 12) {
   return messages.slice(-limit).map((m) => `${m.speakerName}: ${m.text}`).join("\
 ");
+}
+
+function shouldVerify(text) {
+  if (!text) return false;
+  return (
+    text.toLowerCase().includes("verify") ||
+    text.toLowerCase().includes("fact") ||
+    /\d+%/.test(text)
+  );
 }
 
 /**
@@ -555,6 +565,21 @@ async function orchestrateTask({ taskGoal, selectedAgentIds = [], priorMessages 
       modelName: "fallback"
     };
   }
+
+  try {
+    const text = agentMessage?.text;
+  
+    if (true) {
+      const fact = await verifyClaim(text);
+  
+      if (fact && fact.verdict) {
+        agentMessage.text += `\n\n🔍 Fact Check:\nVerdict: ${fact.verdict}\nConfidence: ${fact.confidence}`;
+      }
+    }
+  } catch (err) {
+    console.log("Fact-check skipped:", err.message);
+  }
+
   messages.push(agentMessage);
 
   // ─────────────────────────────────────────────────────────────
