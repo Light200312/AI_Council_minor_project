@@ -17,7 +17,7 @@ const checks = [
     name: "agent-gemini",
     run: () =>
       callGemini({
-        model: process.env.GEMINI_MODEL || "gemini-1.5-flash",
+        model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
         system: "You are a test assistant.",
         prompt: "Reply with exactly: OK_GEMINI",
         temperature: 0,

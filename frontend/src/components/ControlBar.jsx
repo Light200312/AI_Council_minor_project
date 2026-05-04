@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Users, Plus, SlidersHorizontal } from "lucide-react";
 import { Button } from "./ui/Button";
 import { Dialog, DialogContent, DialogHeader } from "./ui/Dialog";
+import { Toggle } from "./ui/Toggle";
 import { useAppStore } from "../store/useAppStore";
 
 function getSessionDisplayCode(sessionId) {
@@ -33,6 +34,8 @@ function ControlBar({
   const setOrchestratorMode = useAppStore((state) => state.setOrchestratorMode);
   const memoryMode = useAppStore((state) => state.memoryMode);
   const setMemoryMode = useAppStore((state) => state.setMemoryMode);
+  const toolCallingEnabled = useAppStore((state) => state.toolCallingEnabled);
+  const setToolCallingEnabled = useAppStore((state) => state.setToolCallingEnabled);
   const apiModes = [
     { id: "persona", label: "Per Personality" },
     { id: "ollama_only", label: "Ollama Only" },
@@ -130,7 +133,7 @@ function ControlBar({
               Settings
             </span>
             <span className="block text-sm font-medium text-slate-900 dark:text-slate-100">
-              {selectedApiMode} • {selectedOllamaModel} • {selectedOrchestratorMode} • {selectedMemoryMode.replace("Memory: ", "")}
+              {selectedApiMode} • {selectedOllamaModel} • {selectedOrchestratorMode} • {selectedMemoryMode.replace("Memory: ", "")} • {toolCallingEnabled ? "Tools On" : "Tools Off"}
             </span>
           </span>
         </button>
@@ -210,6 +213,29 @@ function ControlBar({
             selectedValue: memoryMode,
             onChange: setMemoryMode,
           })}
+          <section className="space-y-3">
+            <div>
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Persona Tool Calling</h3>
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                Let personas decide when live tools are needed for medical, legal, research, news, and other factual topics.
+              </p>
+            </div>
+            <div className="flex items-center justify-between rounded-2xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 px-4 py-3">
+              <div>
+                <p className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                  {toolCallingEnabled ? "Enabled" : "Disabled"}
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Personas can pull real-world context only when it helps the current discussion.
+                </p>
+              </div>
+              <Toggle
+                checked={toolCallingEnabled}
+                onChange={setToolCallingEnabled}
+                aria-label="Toggle persona tool calling"
+              />
+            </div>
+          </section>
         </DialogContent>
       </Dialog>
     </>;

@@ -38,7 +38,19 @@ export async function listMessages(req, res) {
  */
 export async function createMessage(req, res) {
   try {
-    const { sessionId, topic, sessionParticipantIds = [], sessionParticipants = [], speakerId, speakerName, speakerInitials, isUser, text, timestamp } = req.body || {};
+    const {
+      sessionId,
+      topic,
+      sessionParticipantIds = [],
+      sessionParticipants = [],
+      speakerId,
+      speakerName,
+      speakerInitials,
+      isUser,
+      text,
+      toolCalls = [],
+      timestamp,
+    } = req.body || {};
     if (!speakerId || !speakerName || !speakerInitials || typeof isUser !== "boolean" || !text) return res.status(400).json({ message: "Invalid message payload." });
     if (!sessionId || !topic) return res.status(400).json({ message: "sessionId and topic are required." });
     const created = await Message.create({
@@ -46,6 +58,15 @@ export async function createMessage(req, res) {
       sessionParticipantIds: sanitizeStringArray(sessionParticipantIds),
       sessionParticipants: Array.isArray(sessionParticipants) ? sessionParticipants.map((p) => ({ id: String(p?.id || "").trim(), name: String(p?.name || "").trim(), role: String(p?.role || "").trim(), avatarInitials: String(p?.avatarInitials || "").trim() })).filter((p) => p.id && p.name) : [],
       speakerId, speakerName, speakerInitials, isUser, text, timestamp: timestamp || Date.now(),
+      toolCalls: Array.isArray(toolCalls)
+        ? toolCalls.map((tool) => ({
+            toolName: String(tool?.toolName || "").trim(),
+            args: tool?.args && typeof tool.args === "object" ? tool.args : {},
+            ok: typeof tool?.ok === "boolean" ? tool.ok : true,
+            text: String(tool?.text || "").trim(),
+            durationMs: Number(tool?.durationMs || 0),
+          })).filter((tool) => tool.toolName)
+        : [],
     });
     return res.status(201).json({ message: created });
   } catch (error) { console.error("Message create failed:", error); return res.status(500).json({ message: "Failed to save message.", error: error.message }); }

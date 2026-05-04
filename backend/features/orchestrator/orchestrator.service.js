@@ -465,7 +465,22 @@ Rules:
  *   - suggestion: Recommendation for user's response
  *   - termination: Reason this turn completed
  */
-async function orchestrateTask({ taskGoal, selectedAgentIds = [], priorMessages = [], maxIterations, allowMetaMemory = false, metaMemory = null, apiRoutingMode = "persona", ollamaModel = "", orchestratorMode = "fast", memoryMode = "minimal", topic = "", sessionId = "" }) {
+async function orchestrateTask({
+  taskGoal,
+  selectedAgentIds = [],
+  priorMessages = [],
+  maxIterations,
+  allowMetaMemory = false,
+  metaMemory = null,
+  apiRoutingMode = "persona",
+  ollamaModel = "",
+  orchestratorMode = "fast",
+  memoryMode = "minimal",
+  topic = "",
+  sessionId = "",
+  discussionMode = "",
+  toolCallingEnabled = false,
+}) {
   // ─────────────────────────────────────────────────────────────
   // PHASE 1: LOAD AND VALIDATE AGENTS
   // ─────────────────────────────────────────────────────────────
@@ -539,7 +554,9 @@ async function orchestrateTask({ taskGoal, selectedAgentIds = [], priorMessages 
       ollamaModel,
       memoryMode,
       topic: scope.topic,
-      sessionId: scope.sessionId
+      sessionId: scope.sessionId,
+      discussionMode,
+      toolCallingEnabled,
     });
   } catch (_) {
     // Graceful fallback if agent fails
@@ -552,7 +569,8 @@ async function orchestrateTask({ taskGoal, selectedAgentIds = [], priorMessages 
       text: "I could not respond due to a temporary model issue. Share your next point, and I will continue coaching.",
       timestamp: Date.now(),
       modelProvider: "fallback",
-      modelName: "fallback"
+      modelName: "fallback",
+      toolCalls: [],
     };
   }
   messages.push(agentMessage);

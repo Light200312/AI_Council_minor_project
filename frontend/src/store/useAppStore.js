@@ -81,6 +81,7 @@ const useAppStore = create(
       ollamaModel: "llama3.1:latest",
       orchestratorMode: "fast",
       memoryMode: "minimal",
+      toolCallingEnabled: true,
       agents: FALLBACK_AGENTS,
       messages: [],
       discussionHistory: [],
@@ -202,6 +203,8 @@ const useAppStore = create(
             outputConstraints,
             apiRoutingMode: get().apiRoutingMode,
             ollamaModel: get().ollamaModel,
+            discussionMode: get().gameState.mode,
+            toolCallingEnabled: get().toolCallingEnabled,
           },
           token
         );
@@ -271,6 +274,7 @@ const useAppStore = create(
           ollamaModel: "llama3.1:latest",
           orchestratorMode: "fast",
           memoryMode: "minimal",
+          toolCallingEnabled: true,
           gameState: initialGameState(),
           messages: [],
           discussionHistory: [],
@@ -441,6 +445,8 @@ const useAppStore = create(
               memoryMode: get().memoryMode,
               topic: gameState.topic,
               sessionId: gameState.sessionId,
+              discussionMode: gameState.mode,
+              toolCallingEnabled: get().toolCallingEnabled,
             },
             token
           );
@@ -472,6 +478,7 @@ const useAppStore = create(
                   speakerInitials: m.speakerInitials,
                   isUser: false,
                   text: m.text,
+                  toolCalls: Array.isArray(m.toolCalls) ? m.toolCalls : [],
                   timestamp: m.timestamp || Date.now(),
                 },
                 token
@@ -659,6 +666,7 @@ const useAppStore = create(
       setOllamaModel: (ollamaModel) => set({ ollamaModel }),
       setOrchestratorMode: (orchestratorMode) => set({ orchestratorMode }),
       setMemoryMode: (memoryMode) => set({ memoryMode }),
+      setToolCallingEnabled: (toolCallingEnabled) => set({ toolCallingEnabled: Boolean(toolCallingEnabled) }),
 
       resetSession: () =>
         set({
@@ -684,6 +692,7 @@ const useAppStore = create(
         ollamaModel: state.ollamaModel,
         orchestratorMode: state.orchestratorMode,
         memoryMode: state.memoryMode,
+        toolCallingEnabled: state.toolCallingEnabled,
         gameState: state.gameState,
         discussionHistory: state.discussionHistory,
         messages: state.messages,

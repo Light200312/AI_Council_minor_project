@@ -25,6 +25,15 @@ const messageSchema = new mongoose.Schema({
   speakerInitials: { type: String, required: true, trim: true },
   isUser: { type: Boolean, required: true },
   text: { type: String, required: true, trim: true },
+  toolCalls: [
+    {
+      toolName: { type: String, trim: true },
+      args: { type: mongoose.Schema.Types.Mixed, default: {} },
+      ok: { type: Boolean, default: true },
+      text: { type: String, trim: true },
+      durationMs: { type: Number, default: 0 },
+    },
+  ],
   timestamp: { type: Number, required: true, default: Date.now },
 });
 

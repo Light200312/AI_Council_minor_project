@@ -31,8 +31,10 @@ function MentorDashboard({ topic, members }) {
   const [inputValue, setInputValue] = useState("");
   const [speakingMessageId, setSpeakingMessageId] = useState("");
   const [speechReady, setSpeechReady] = useState(false);
+  const [toolToasts, setToolToasts] = useState([]);
   const messagesEndRef = useRef(null);
   const availableVoicesRef = useRef([]);
+  const seenToolToastIdsRef = useRef(new Set());
 
   useEffect(() => {
     if (token) loadMessages();
@@ -41,6 +43,34 @@ function MentorDashboard({ topic, members }) {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isLoadingReply]);
+
+  useEffect(() => {
+    const nextToasts = [];
+    messages.forEach((message) => {
+      if (!Array.isArray(message?.toolCalls) || !message.toolCalls.length) return;
+      const toastId = `${message.id}:${message.toolCalls.map((tool) => tool.toolName).join(",")}`;
+      if (seenToolToastIdsRef.current.has(toastId)) return;
+      seenToolToastIdsRef.current.add(toastId);
+      nextToasts.push({
+        id: toastId,
+        speakerName: message.speakerName,
+        tools: message.toolCalls.map((tool) => tool.toolName),
+      });
+    });
+
+    if (!nextToasts.length) return undefined;
+
+    setToolToasts((current) => [...current, ...nextToasts].slice(-4));
+    const timers = nextToasts.map((toast) =>
+      window.setTimeout(() => {
+        setToolToasts((current) => current.filter((item) => item.id !== toast.id));
+      }, 4500)
+    );
+
+    return () => {
+      timers.forEach((timer) => window.clearTimeout(timer));
+    };
+  }, [messages]);
 
   useEffect(
     () => () => {
@@ -122,6 +152,19 @@ function MentorDashboard({ topic, members }) {
   return (
     <div className="grid grid-cols-12 gap-6 h-[calc(100vh-7rem)]">
       <div className="col-span-9 flex flex-col min-h-0">
+        {toolToasts.length ? (
+          <div className="fixed right-6 top-24 z-30 space-y-2">
+            {toolToasts.map((toast) => (
+              <div
+                key={toast.id}
+                className="min-w-[260px] rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 shadow-lg dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-100"
+              >
+                <p className="font-semibold">{toast.speakerName} called tools</p>
+                <p className="mt-1 text-xs font-mono">{toast.tools.join(" • ")}</p>
+              </div>
+            ))}
+          </div>
+        ) : null}
         <Card className="flex-1 flex flex-col overflow-hidden border-2 border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
           <div className="p-4 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex-shrink-0">
             <h2 className="text-lg font-bold text-slate-900 dark:text-white">Council Discussion</h2>
@@ -193,6 +236,19 @@ function MentorDashboard({ topic, members }) {
                             }`}
                           >
                             {tag.label}
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
+                    {msg.toolCalls?.length ? (
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        {msg.toolCalls.map((tool, index) => (
+                          <span
+                            key={`${msg.id}-${tool.toolName}-${index}`}
+                            className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-200"
+                            title={tool.text || tool.toolName}
+                          >
+                            Tool: {tool.toolName}
                           </span>
                         ))}
                       </div>

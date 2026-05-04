@@ -161,6 +161,8 @@ export async function agentRespond(req, res) {
       memoryMode = "minimal",
       topic = "",
       sessionId = "",
+      discussionMode = "",
+      toolCallingEnabled = false,
     } = req.body || {};
     if (!taskGoal) return res.status(400).json({ message: "taskGoal is required." });
 
@@ -174,6 +176,8 @@ export async function agentRespond(req, res) {
       memoryMode,
       topic,
       sessionId,
+      discussionMode,
+      toolCallingEnabled,
     });
 
     return res.json({ response });

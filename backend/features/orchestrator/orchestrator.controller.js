@@ -55,7 +55,9 @@ export async function run(req, res) {
       orchestratorMode = "fast",
       memoryMode = "minimal",
       topic = "",
-      sessionId = ""
+      sessionId = "",
+      discussionMode = "",
+      toolCallingEnabled = false,
     } = req.body || {};
     
     // Validate that the task goal is provided (required field)
@@ -76,7 +78,9 @@ export async function run(req, res) {
       orchestratorMode,
       memoryMode,
       topic,
-      sessionId
+      sessionId,
+      discussionMode,
+      toolCallingEnabled,
     });
     
     // Return successful orchestration result
