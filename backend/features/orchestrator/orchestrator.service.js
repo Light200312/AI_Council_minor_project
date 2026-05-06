@@ -566,20 +566,6 @@ async function orchestrateTask({ taskGoal, selectedAgentIds = [], priorMessages 
     };
   }
 
-  try {
-    const text = agentMessage?.text;
-  
-    if (true) {
-      const fact = await verifyClaim(text);
-  
-      if (fact && fact.verdict) {
-        agentMessage.text += `\n\n🔍 Fact Check:\nVerdict: ${fact.verdict}\nConfidence: ${fact.confidence}`;
-      }
-    }
-  } catch (err) {
-    console.log("Fact-check skipped:", err.message);
-  }
-
   messages.push(agentMessage);
 
   // ─────────────────────────────────────────────────────────────
