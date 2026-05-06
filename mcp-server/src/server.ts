@@ -1,12 +1,16 @@
 import dotenv from "dotenv";
-import express, { Request, Response, NextFunction } from "express";
-import { router } from "./routes";
 import path from "path";
 
 dotenv.config({
   path: path.resolve(process.cwd(), ".env"),
 });
 
+// ✅ NOW env is loaded
+console.log("OPENAI KEY:", process.env.OPENAI_API_KEY);
+console.log("SERPER KEY:", process.env.SERPER_API_KEY);
+
+import express, { Request, Response, NextFunction } from "express";
+import { router } from "./routes";
 
 
 const app = express();
