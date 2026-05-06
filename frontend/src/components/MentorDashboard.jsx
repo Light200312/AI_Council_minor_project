@@ -7,12 +7,94 @@ import { KnowledgeGrowth } from "./KnowledgeGrowth";
 import { AppreciationMeter } from "./AppreciationMeter";
 import { CRITIQUE_TAG_STYLES } from "../data/mockData";
 import { useAppStore } from "../store/useAppStore";
+import { factCheckClaim } from "../lib/factCheckApi";
 
 function pickPreferredVoice(voices = []) {
   return (
     voices.find((voice) => /en/i.test(voice.lang) && /google|natural|zira|david|samantha/i.test(voice.name)) ||
     voices.find((voice) => /en/i.test(voice.lang)) ||
     null
+  );
+}
+
+function shouldShowFactCheck(text) {
+  if (!text) return false;
+
+  const lower = text.toLowerCase();
+
+  return (
+    text.length > 40 && // ignore short messages like "start"
+    (
+      lower.includes("ai") ||
+      lower.includes("will") ||
+      lower.includes("should") ||
+      /\d+%/.test(text) // numbers like 80%
+    )
+  );
+}
+
+function FactCheckSection({ text }) {
+  const [factResult, setFactResult] = useState(null);
+  const [loadingFact, setLoadingFact] = useState(false);
+
+  // ❗ Do not render button if text is not meaningful
+  if (!shouldShowFactCheck(text)) return null;
+
+  return (
+    <>
+      <button
+        disabled={loadingFact || factResult} // prevent multiple clicks
+        onClick={async () => {
+          if (!text) return;
+
+          setLoadingFact(true);
+
+          const result = await factCheckClaim(text);
+
+          // handle failure safely
+          if (!result) {
+            setFactResult({
+              verdict: "ERROR",
+              confidence: 0,
+            });
+          } else {
+            setFactResult(result);
+          }
+
+          setLoadingFact(false);
+        }}
+        style={{
+          marginTop: "6px",
+          fontSize: "12px",
+          color: "#38bdf8",
+          cursor: "pointer",
+          background: "transparent",
+          border: "none",
+          opacity: loadingFact ? 0.6 : 1,
+        }}
+      >
+        🔍 Fact Check
+      </button>
+
+      {loadingFact && <div>Checking facts...</div>}
+
+      {factResult && (
+        <div
+          style={{
+            marginTop: "8px",
+            padding: "8px",
+            borderRadius: "8px",
+            backgroundColor: "#1e293b",
+            color: "white",
+            fontSize: "13px",
+          }}
+        >
+          🔍 Fact Check Result <br />
+          Verdict: {factResult.verdict} <br />
+          Confidence: {factResult.confidence}
+        </div>
+      )}
+    </>
   );
 }
 
@@ -162,6 +244,7 @@ function MentorDashboard({ topic, members }) {
                     >
                       {msg.text}
                     </div>
+                    <FactCheckSection text={msg.text} />
                     <div className={`flex ${msg.isUser ? "justify-end" : "justify-start"}`}>
                       <button
                         type="button"
