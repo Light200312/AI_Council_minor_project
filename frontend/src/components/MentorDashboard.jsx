@@ -33,6 +33,28 @@ function shouldShowFactCheck(text) {
   );
 }
 
+function getVerdictStyle(verdict) {
+  const normalized = String(verdict || "").toUpperCase();
+  if (normalized === "TRUE") {
+    return { backgroundColor: "#dcfce7", color: "#166534", borderColor: "#86efac" };
+  }
+  if (normalized === "FALSE") {
+    return { backgroundColor: "#fee2e2", color: "#991b1b", borderColor: "#fca5a5" };
+  }
+  if (normalized === "PARTIALLY TRUE") {
+    return { backgroundColor: "#fef3c7", color: "#92400e", borderColor: "#fcd34d" };
+  }
+  return { backgroundColor: "#e2e8f0", color: "#334155", borderColor: "#cbd5e1" };
+}
+
+function formatSourceHost(source) {
+  try {
+    return new URL(source).hostname.replace(/^www\./, "");
+  } catch {
+    return source;
+  }
+}
+
 function FactCheckSection({ text }) {
   const [factResult, setFactResult] = useState(null);
   const [loadingFact, setLoadingFact] = useState(false);
@@ -74,15 +96,29 @@ function FactCheckSection({ text }) {
         <div
           style={{
             marginTop: "8px",
-            padding: "8px",
+            padding: "10px",
             borderRadius: "8px",
             backgroundColor: "#1e293b",
             color: "white",
             fontSize: "13px",
+            lineHeight: 1.5,
           }}
         >
-          🔍 Fact Check Result <br />
-          Verdict: {factResult.verdict} <br />
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
+            <span>🔍 Fact Check Result</span>
+            <span
+              style={{
+                ...getVerdictStyle(factResult.verdict),
+                border: "1px solid",
+                borderRadius: "999px",
+                fontSize: "11px",
+                fontWeight: 700,
+                padding: "2px 8px",
+              }}
+            >
+              {factResult.verdict || "UNKNOWN"}
+            </span>
+          </div>
           Confidence: {Math.round((Number(factResult.confidence) || 0) * 100)}%
           {factResult.errorCode ? (
             <>
@@ -97,10 +133,26 @@ function FactCheckSection({ text }) {
             </>
           ) : null}
           {factResult.sources?.length ? (
-            <>
-              <br />
-              <span>Sources: {factResult.sources.length}</span>
-            </>
+            <div style={{ marginTop: "8px" }}>
+              <div style={{ fontWeight: 700 }}>Sources:</div>
+              <div style={{ display: "grid", gap: "4px", marginTop: "4px" }}>
+                {factResult.sources.map((source, index) => (
+                  <a
+                    key={`${source}-${index}`}
+                    href={source}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      color: "#7dd3fc",
+                      overflowWrap: "anywhere",
+                      textDecoration: "underline",
+                    }}
+                  >
+                    {index + 1}. {formatSourceHost(source)}
+                  </a>
+                ))}
+              </div>
+            </div>
           ) : null}
         </div>
       )}
