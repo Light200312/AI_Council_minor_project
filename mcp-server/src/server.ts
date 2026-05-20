@@ -2,19 +2,26 @@ import dotenv from "dotenv";
 import path from "path";
 
 dotenv.config({
-  path: path.resolve(process.cwd(), ".env"),
+  path: path.resolve(__dirname, "../.env"),
+});
+dotenv.config({
+  path: path.resolve(__dirname, "../../backend/.env"),
 });
 
-// ✅ NOW env is loaded
-console.log("OPENAI KEY:", process.env.OPENAI_API_KEY);
-console.log("SERPER KEY:", process.env.SERPER_API_KEY);
-
 import express, { Request, Response, NextFunction } from "express";
+import cors from "cors";
 import { router } from "./routes";
 
 
 const app = express();
 const port = Number(process.env.PORT ?? 3001);
+
+// Enable CORS for all routes
+app.use(cors({
+  origin: "*",
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  credentials: false,
+}));
 
 app.use(express.json({ limit: "1mb" }));
 app.use(router);

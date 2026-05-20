@@ -51,15 +51,7 @@ function FactCheckSection({ text }) {
 
           const result = await factCheckClaim(text);
 
-          // handle failure safely
-          if (!result) {
-            setFactResult({
-              verdict: "ERROR",
-              confidence: 0,
-            });
-          } else {
-            setFactResult(result);
-          }
+          setFactResult(result);
 
           setLoadingFact(false);
         }}
@@ -91,7 +83,25 @@ function FactCheckSection({ text }) {
         >
           🔍 Fact Check Result <br />
           Verdict: {factResult.verdict} <br />
-          Confidence: {factResult.confidence}
+          Confidence: {Math.round((Number(factResult.confidence) || 0) * 100)}%
+          {factResult.errorCode ? (
+            <>
+              <br />
+              <span>Error: {factResult.errorCode}</span>
+            </>
+          ) : null}
+          {factResult.explanation ? (
+            <>
+              <br />
+              <span>{factResult.explanation}</span>
+            </>
+          ) : null}
+          {factResult.sources?.length ? (
+            <>
+              <br />
+              <span>Sources: {factResult.sources.length}</span>
+            </>
+          ) : null}
         </div>
       )}
     </>
