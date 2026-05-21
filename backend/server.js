@@ -16,12 +16,22 @@ dotenv.config();
 // Express app configuration + environment defaults.
 const app = express();
 const port = process.env.PORT || 3000;
-const origin = process.env.FRONTEND_ORIGIN || "http://localhost:5173";
+const allowedOrigins = [
+  process.env.FRONTEND_ORIGIN,
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+].filter(Boolean);
 
 // CORS + JSON body parsing for API requests.
 app.use(
   cors({
-    origin,
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error(`CORS blocked origin: ${origin}`));
+    },
     credentials: true,
   })
 );
