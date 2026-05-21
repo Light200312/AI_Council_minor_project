@@ -11,11 +11,12 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
-      - FRONTEND_ORIGIN=http://frontend:3000
-      # Add other backend environment variables as needed
-      # - MONGODB_URI=mongodb://mongo:27017/aicouncil
-    depends_on:
-      - mongo
+      # IMPORTANT: Replace with your EC2 public IP or domain name
+      - FRONTEND_ORIGIN=http://16.171.181.212
+      # MongoDB Atlas connection string
+      # Get this from MongoDB Atlas dashboard: https://www.mongodb.com/cloud/atlas
+      # Replace USER, PASSWORD, and CLUSTER_NAME with your actual values
+      - MONGODB_URI=mongodb+srv://light20031112_db_user:HppjDjMjq65H5x35@cluster0.5pv8niv.mongodb.net/?appName=Cluster0
     networks:
       - aicouncil-network
     restart: unless-stopped
@@ -26,24 +27,16 @@ services:
       dockerfile: Dockerfile
     container_name: aicouncil-frontend
     ports:
-      - "5173:3000"
+      # UPDATED: Changed from 5173:3000 to 80:3000 for production
+      # Users now access: http://16.171.181.212 (cleaner URL, no port needed)
+      - "80:3000"
     environment:
       - NODE_ENV=production
+      # IMPORTANT: Set API URL for frontend (must have VITE_ prefix for Vite)
+      # Replace with your EC2 public IP or domain
+      - VITE_API_URL=http://16.171.181.212:3000
     depends_on:
       - backend
-    networks:
-      - aicouncil-network
-    restart: unless-stopped
-
-  mongo:
-    image: mongo:7-alpine
-    container_name: aicouncil-mongo
-    ports:
-      - "27017:27017"
-    environment:
-      - MONGO_INITDB_DATABASE=aicouncil
-    volumes:
-      - mongo-data:/data/db
     networks:
       - aicouncil-network
     restart: unless-stopped
@@ -51,7 +44,3 @@ services:
 networks:
   aicouncil-network:
     driver: bridge
-
-volumes:
-  mongo-data:
-    driver: local
