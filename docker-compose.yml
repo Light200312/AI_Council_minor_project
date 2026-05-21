@@ -11,12 +11,8 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
-      # IMPORTANT: Replace with your EC2 public IP or domain name
       - FRONTEND_ORIGIN=http://16.171.181.212
-      # MongoDB Atlas connection string
-      # Get this from MongoDB Atlas dashboard: https://www.mongodb.com/cloud/atlas
-      # Replace USER, PASSWORD, and CLUSTER_NAME with your actual values
-      - MONGODB_URI=mongodb+srv://light20031112_db_user:HppjDjMjq65H5x35@cluster0.5pv8niv.mongodb.net/?appName=Cluster0
+      - MONGO_URI=mongodb+srv://light20031112_db_user:HppjDjMjq65H5x35@cluster0.5pv8niv.mongodb.net/aicouncil?retryWrites=true&w=majority
     networks:
       - aicouncil-network
     restart: unless-stopped
@@ -25,16 +21,13 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        - VITE_API_BASE_URL=http://16.171.181.212:3000/api
     container_name: aicouncil-frontend
     ports:
-      # UPDATED: Changed from 5173:3000 to 80:3000 for production
-      # Users now access: http://16.171.181.212 (cleaner URL, no port needed)
       - "80:3000"
     environment:
       - NODE_ENV=production
-      # IMPORTANT: Set API URL for frontend (must have VITE_ prefix for Vite)
-      # Replace with your EC2 public IP or domain
-      - VITE_API_URL=http://16.171.181.212:3000
     depends_on:
       - backend
     networks:

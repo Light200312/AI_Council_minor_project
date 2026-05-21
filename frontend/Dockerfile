@@ -13,6 +13,10 @@ RUN npm install
 # Copy the source code
 COPY . .
 
+# Accept build arg and expose to Vite at build time
+ARG VITE_API_BASE_URL
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+
 # Build the application
 RUN npm run build
 
