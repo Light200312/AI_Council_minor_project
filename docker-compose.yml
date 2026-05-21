@@ -8,11 +8,11 @@ services:
     container_name: aicouncil-backend
     ports:
       - "3000:3000"
+    env_file:
+      - ./backend/.env
     environment:
       - NODE_ENV=production
       - PORT=3000
-      - FRONTEND_ORIGIN=http://16.171.181.212
-      - MONGO_URI=mongodb+srv://light20031112_db_user:HppjDjMjq65H5x35@cluster0.5pv8niv.mongodb.net/aicouncil?retryWrites=true&w=majority
     networks:
       - aicouncil-network
     restart: unless-stopped
