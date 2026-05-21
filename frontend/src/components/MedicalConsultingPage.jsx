@@ -38,6 +38,14 @@ export default function MedicalConsultingPage({
     "Cardiac arrhythmia & palpitations"
   ];
 
+  const handleMedicalCaseChange = (value) => {
+    setMedicalCase(value);
+    setError("");
+    setShowPanel(false);
+    setPanelDoctors([]);
+    setSelectedDoctors(new Set());
+  };
+
   const generateMedicalPanel = async () => {
     if (!medicalCase.trim()) {
       setError("Please describe the medical case or symptoms");
@@ -96,6 +104,13 @@ export default function MedicalConsultingPage({
             Consult with multiple doctors and medical specialists for collaborative diagnosis
             discussions and expert medical opinions on complex health cases.
           </p>
+          <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100">
+            <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0" />
+            <p>
+              This is educational guidance only and not a substitute for professional medical care.
+              Seek urgent medical attention for severe or worsening symptoms.
+            </p>
+          </div>
         </div>
 
         {/* Case Input Section */}
@@ -106,9 +121,10 @@ export default function MedicalConsultingPage({
             </span>
             <textarea
               value={medicalCase}
-              onChange={(e) => setMedicalCase(e.target.value)}
+              onChange={(e) => handleMedicalCaseChange(e.target.value)}
               placeholder="Describe the patient's symptoms, medical history, and any relevant test results..."
               className="w-full px-4 py-3 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-500 min-h-24 resize-none"
+              disabled={loading}
             />
           </label>
 
@@ -121,8 +137,9 @@ export default function MedicalConsultingPage({
               {caseExamples.map((example) => (
                 <button
                   key={example}
-                  onClick={() => setMedicalCase(example)}
-                  className="px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+                  onClick={() => handleMedicalCaseChange(example)}
+                  disabled={loading}
+                  className="px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {example}
                 </button>
@@ -149,9 +166,14 @@ export default function MedicalConsultingPage({
 
         {/* Error Display */}
         {error && (
-          <div className="flex items-start gap-3 p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+          <div className="flex items-start justify-between gap-3 p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+            <div className="flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
             <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
+            </div>
+            <Button onClick={generateMedicalPanel} disabled={loading || !medicalCase.trim()} variant="outline" className="shrink-0">
+              Retry
+            </Button>
           </div>
         )}
 
@@ -169,6 +191,7 @@ export default function MedicalConsultingPage({
                   <button
                     key={doctor.id}
                     onClick={() => toggleDoctorSelection(doctor.id)}
+                    disabled={loading}
                     className={`flex items-start gap-3 p-4 rounded-lg border-2 transition-all text-left ${
                       selectedDoctors.has(doctor.id)
                         ? "border-green-500 bg-green-50 dark:bg-green-900/20"
@@ -207,13 +230,14 @@ export default function MedicalConsultingPage({
               <Button
                 onClick={onClose}
                 variant="outline"
+                disabled={loading}
                 className="flex-1"
               >
                 Back
               </Button>
               <Button
                 onClick={startMedicalSession}
-                disabled={selectedDoctors.size < 2}
+                disabled={loading || selectedDoctors.size < 2}
                 className="flex-1 bg-green-600 hover:bg-green-700 text-white"
               >
                 Start Medical Consultation ({selectedDoctors.size} selected)

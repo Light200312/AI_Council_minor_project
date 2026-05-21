@@ -67,6 +67,14 @@ export default function InterviewSimulatorPage({
     }
   ];
 
+  const handleScenarioChange = (id) => {
+    setScenarioType(id);
+    setError("");
+    setShowPanel(false);
+    setPanelInterviewers([]);
+    setSelectedInterviewers(new Set());
+  };
+
   const generateInterviewPanel = async () => {
     if (!scenarioType) {
       setError("Please select an interview type");
@@ -138,7 +146,8 @@ export default function InterviewSimulatorPage({
               {scenarioOptions.map((scenario) => (
                 <button
                   key={scenario.id}
-                  onClick={() => setScenarioType(scenario.id)}
+                  onClick={() => handleScenarioChange(scenario.id)}
+                  disabled={loading}
                   className={`p-4 rounded-lg border-2 transition-all text-left ${
                     scenarioType === scenario.id
                       ? "border-purple-500 bg-purple-50 dark:bg-purple-900/20"
@@ -175,9 +184,14 @@ export default function InterviewSimulatorPage({
 
         {/* Error Display */}
         {error && (
-          <div className="flex items-start gap-3 p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+          <div className="flex items-start justify-between gap-3 p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+            <div className="flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
             <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
+            </div>
+            <Button onClick={generateInterviewPanel} disabled={loading || !scenarioType} variant="outline" className="shrink-0">
+              Retry
+            </Button>
           </div>
         )}
 
@@ -195,6 +209,7 @@ export default function InterviewSimulatorPage({
                   <button
                     key={interviewer.id}
                     onClick={() => toggleInterviewerSelection(interviewer.id)}
+                    disabled={loading}
                     className={`flex items-start gap-3 p-4 rounded-lg border-2 transition-all text-left ${
                       selectedInterviewers.has(interviewer.id)
                         ? "border-purple-500 bg-purple-50 dark:bg-purple-900/20"
@@ -233,13 +248,14 @@ export default function InterviewSimulatorPage({
               <Button
                 onClick={onClose}
                 variant="outline"
+                disabled={loading}
                 className="flex-1"
               >
                 Back
               </Button>
               <Button
                 onClick={startInterviewSession}
-                disabled={selectedInterviewers.size < 1}
+                disabled={loading || selectedInterviewers.size < 1}
                 className="flex-1 bg-purple-600 hover:bg-purple-700 text-white"
               >
                 Start Interview ({selectedInterviewers.size} selected)
