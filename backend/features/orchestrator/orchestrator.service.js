@@ -14,6 +14,7 @@
 
 import Agent from "../agent/agent.model.js";
 import { runAgentStep } from "../agent/agentRuntime.service.js";
+import { verifyClaim } from "../../services/mcpClient.js";
 import { resolveAgentModelConfig } from "../../shared/agentModelRegistry.js";
 import { callOrchestratorLLM } from "../../shared/llmClient.js";
 import { truncateText, generateMessageId } from "../../shared/helpers.js";
@@ -37,6 +38,15 @@ import { truncateText, generateMessageId } from "../../shared/helpers.js";
 function formatMessages(messages = [], limit = 12) {
   return messages.slice(-limit).map((m) => `${m.speakerName}: ${m.text}`).join("\
 ");
+}
+
+function shouldVerify(text) {
+  if (!text) return false;
+  return (
+    text.toLowerCase().includes("verify") ||
+    text.toLowerCase().includes("fact") ||
+    /\d+%/.test(text)
+  );
 }
 
 /**
@@ -573,6 +583,7 @@ async function orchestrateTask({
       toolCalls: [],
     };
   }
+
   messages.push(agentMessage);
 
   // ─────────────────────────────────────────────────────────────

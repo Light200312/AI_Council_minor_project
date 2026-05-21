@@ -7,6 +7,22 @@
 
 import { generateLawPanel, generateInterviewPanel, generateMedicalPanel } from "./panels.service.js";
 
+function getTrimmedField(req, fieldName) {
+  return String(req.body?.[fieldName] ?? "").trim();
+}
+
+function validateTextInput(res, value, label, minLength = 3) {
+  if (!value) {
+    res.status(400).json({ message: `${label} is required.` });
+    return false;
+  }
+  if (value.length < minLength) {
+    res.status(400).json({ message: `${label} must be at least ${minLength} characters long.` });
+    return false;
+  }
+  return true;
+}
+
 /**
  * lawPanel - Generate legal expert panel
  * WHY: Create specialized team for law-related discussions
@@ -15,11 +31,14 @@ import { generateLawPanel, generateInterviewPanel, generateMedicalPanel } from "
  */
 export async function lawPanel(req, res) {
   try {
-    const { topic } = req.body || {};
-    if (!topic) return res.status(400).json({ message: "topic is required." });
+    const topic = getTrimmedField(req, "topic");
+    if (!validateTextInput(res, topic, "Legal topic")) return;
     const result = generateLawPanel(topic);
     return res.json(result);
-  } catch (error) { console.error("Law panel generation failed:", error); return res.status(500).json({ message: "Failed to generate law panel.", error: error.message }); }
+  } catch (error) {
+    console.error("Law panel generation failed:", error);
+    return res.status(500).json({ message: "Could not generate the legal panel. Please try again." });
+  }
 }
 
 
@@ -31,11 +50,14 @@ export async function lawPanel(req, res) {
  */
 export async function interviewPanel(req, res) {
   try {
-    const { scenario } = req.body || {};
-    if (!scenario) return res.status(400).json({ message: "scenario is required." });
+    const scenario = getTrimmedField(req, "scenario");
+    if (!validateTextInput(res, scenario, "Interview scenario")) return;
     const result = generateInterviewPanel(scenario);
     return res.json(result);
-  } catch (error) { console.error("Interview panel generation failed:", error); return res.status(500).json({ message: "Failed to generate interview panel.", error: error.message }); }
+  } catch (error) {
+    console.error("Interview panel generation failed:", error);
+    return res.status(500).json({ message: "Could not generate the interview panel. Please try again." });
+  }
 }
 
 
@@ -47,9 +69,12 @@ export async function interviewPanel(req, res) {
  */
 export async function medicalPanel(req, res) {
   try {
-    const { medicalCase } = req.body || {};
-    if (!medicalCase) return res.status(400).json({ message: "medicalCase is required." });
+    const medicalCase = getTrimmedField(req, "medicalCase");
+    if (!validateTextInput(res, medicalCase, "Medical case", 10)) return;
     const result = generateMedicalPanel(medicalCase);
     return res.json(result);
-  } catch (error) { console.error("Medical panel generation failed:", error); return res.status(500).json({ message: "Failed to generate medical panel.", error: error.message }); }
+  } catch (error) {
+    console.error("Medical panel generation failed:", error);
+    return res.status(500).json({ message: "Could not generate the medical panel. Please try again." });
+  }
 }
