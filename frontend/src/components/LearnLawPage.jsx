@@ -39,14 +39,6 @@ export default function LearnLawPage({
     "Emergency Provisions"
   ];
 
-  const handleTopicChange = (value) => {
-    setLawTopic(value);
-    setError("");
-    setShowPanel(false);
-    setPanelExperts([]);
-    setSelectedExperts(new Set());
-  };
-
   const generateLawPanel = async () => {
     if (!lawTopic.trim()) {
       setError("Please enter a legal topic");
@@ -121,11 +113,10 @@ export default function LearnLawPage({
             <input
               type="text"
               value={lawTopic}
-              onChange={(e) => handleTopicChange(e.target.value)}
+              onChange={(e) => setLawTopic(e.target.value)}
               placeholder="e.g., Constitutional Rights, IPC Sections, Property Laws..."
               className="w-full px-4 py-3 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              onKeyDown={(e) => e.key === "Enter" && !loading && generateLawPanel()}
-              disabled={loading}
+              onKeyDown={(e) => e.key === "Enter" && generateLawPanel()}
             />
           </label>
 
@@ -138,9 +129,8 @@ export default function LearnLawPage({
               {exampleTopics.map((topic) => (
                 <button
                   key={topic}
-                  onClick={() => handleTopicChange(topic)}
-                  disabled={loading}
-                  className="px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                  onClick={() => setLawTopic(topic)}
+                  className="px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
                 >
                   {topic}
                 </button>
@@ -167,14 +157,9 @@ export default function LearnLawPage({
 
         {/* Error Display */}
         {error && (
-          <div className="flex items-start justify-between gap-3 p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
-            <div className="flex items-start gap-3">
+          <div className="flex items-start gap-3 p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
             <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
             <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
-            </div>
-            <Button onClick={generateLawPanel} disabled={loading || !lawTopic.trim()} variant="outline" className="shrink-0">
-              Retry
-            </Button>
           </div>
         )}
 
@@ -192,7 +177,6 @@ export default function LearnLawPage({
                   <button
                     key={expert.id}
                     onClick={() => toggleExpertSelection(expert.id)}
-                    disabled={loading}
                     className={`flex items-start gap-3 p-4 rounded-lg border-2 transition-all text-left ${
                       selectedExperts.has(expert.id)
                         ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
@@ -231,14 +215,13 @@ export default function LearnLawPage({
               <Button
                 onClick={onClose}
                 variant="outline"
-                disabled={loading}
                 className="flex-1"
               >
                 Back
               </Button>
               <Button
                 onClick={startLawSession}
-                disabled={loading || selectedExperts.size < 2}
+                disabled={selectedExperts.size < 2}
                 className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
               >
                 Start Learning Session ({selectedExperts.size} selected)

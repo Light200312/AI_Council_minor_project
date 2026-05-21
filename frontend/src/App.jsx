@@ -918,17 +918,17 @@ function App() {
                 setActiveTab("arena");
               }}
             />
-          ) : activeTab === "learn-law" ? (
+          ) : activeTab === "learn-law" && gameState.mode !== "learn-law" ? (
             <LearnLawPage
               onSelectExperts={handleSelectExperts}
               onClose={() => setActiveTab("arena")}
             />
-          ) : activeTab === "interview-simulator" ? (
+          ) : activeTab === "interview-simulator" && gameState.mode !== "interview-simulator" ? (
             <InterviewSimulatorPage
               onSelectInterviewers={handleSelectInterviewers}
               onClose={() => setActiveTab("arena")}
             />
-          ) : activeTab === "medical-consulting" ? (
+          ) : activeTab === "medical-consulting" && gameState.mode !== "medical-consulting" ? (
             <MedicalConsultingPage
               onSelectDoctors={handleSelectDoctors}
               onClose={() => setActiveTab("arena")}
