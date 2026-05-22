@@ -1,7 +1,12 @@
 import crypto from "crypto";
 
 const TOKEN_SECRET = process.env.TOKEN_SECRET || "dev-token-secret-change-me";
-const TOKEN_TTL_MS = Number(process.env.TOKEN_TTL_MS || 1000 * 60 * 60 * 24 * 7);
+const DEFAULT_TOKEN_TTL_MS = 1000 * 60 * 60 * 24 * 7;
+const parsedTokenTtlMs = Number(process.env.TOKEN_TTL_MS);
+const TOKEN_TTL_MS =
+  Number.isFinite(parsedTokenTtlMs) && parsedTokenTtlMs > 0
+    ? parsedTokenTtlMs
+    : DEFAULT_TOKEN_TTL_MS;
 
 function toBase64Url(input) {
   return Buffer.from(input)
