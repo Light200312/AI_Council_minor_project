@@ -62,12 +62,14 @@ export async function performResearch({ topic, discussionMode = "", toolCalls = 
     throw new Error("topic is required.");
   }
 
+  const safeDiscussionMode = String(discussionMode || "").trim();
+  const safeToolCalls = Array.isArray(toolCalls) ? toolCalls : [];
   const generatedAt = new Date().toISOString();
   const cached = false;
   const allowedToolNames = new Set(listToolDefinitions().map((tool) => tool.name));
-  const preferredToolNames = getPreferredToolsForMode(discussionMode);
+  const preferredToolNames = getPreferredToolsForMode(safeDiscussionMode);
   const preferredToolSet = new Set(preferredToolNames);
-  const incomingToolCalls = Array.isArray(toolCalls) ? toolCalls.map(normalizeToolCall) : [];
+  const incomingToolCalls = safeToolCalls.map(normalizeToolCall);
 
   // Reuse the shared registry and executor so research stays aligned with the rest of the backend.
   // This keeps tool behavior centralized and avoids duplicating tool logic here.
