@@ -1,4 +1,5 @@
 import { executeToolCall, getPreferredToolsForMode, listToolDefinitions } from "../../tools/tools.js";
+import { collectEvidence } from "./research.evidence.js";
 import { planResearchToolCalls } from "./research.planner.js";
 
 function normalizeTopic(topic) {
@@ -155,11 +156,13 @@ export async function performResearch({ topic, discussionMode = "", toolCalls = 
 
   // TODO: summarize the aggregated research into a concise answer.
   // TODO: add caching so repeated topics can reuse prior results.
+  const evidence = collectEvidence(executedToolCalls);
 
   return {
     topic: safeTopic,
     generatedAt,
     sources,
+    evidence,
     summary: "",
     metadata: {
       toolCalls: executedToolCalls.length,
