@@ -1,4 +1,5 @@
 import { executeToolCall, getPreferredToolsForMode, listToolDefinitions } from "../../tools/tools.js";
+import { planResearchToolCalls } from "./research.planner.js";
 
 function normalizeTopic(topic) {
   return String(topic || "").trim();
@@ -39,7 +40,7 @@ function dedupeSources(sources = []) {
   });
 }
 
-function normalizeToolCall(toolCall) {
+function normalizeProvidedToolCall(toolCall) {
   return {
     toolName: String(toolCall?.toolName || "").trim(),
     args: toolCall?.args && typeof toolCall.args === "object" ? toolCall.args : null,
@@ -69,7 +70,15 @@ export async function performResearch({ topic, discussionMode = "", toolCalls = 
   const allowedToolNames = new Set(listToolDefinitions().map((tool) => tool.name));
   const preferredToolNames = getPreferredToolsForMode(safeDiscussionMode);
   const preferredToolSet = new Set(preferredToolNames);
-  const incomingToolCalls = safeToolCalls.map(normalizeToolCall);
+  const hasCallerToolCalls = safeToolCalls.length > 0;
+  const plannerResult = hasCallerToolCalls
+    ? {
+        needsTools: false,
+        reason: "Using caller-provided tool calls.",
+        toolCalls: safeToolCalls.map(normalizeProvidedToolCall),
+      }
+    : await planResearchToolCalls({ topic: safeTopic, discussionMode: safeDiscussionMode });
+  const incomingToolCalls = plannerResult.toolCalls;
 
   // Reuse the shared registry and executor so research stays aligned with the rest of the backend.
   // This keeps tool behavior centralized and avoids duplicating tool logic here.
@@ -155,6 +164,11 @@ export async function performResearch({ topic, discussionMode = "", toolCalls = 
     metadata: {
       toolCalls: executedToolCalls.length,
       cached,
+      planner: {
+        used: !hasCallerToolCalls,
+        needsTools: plannerResult.needsTools,
+        reason: plannerResult.reason,
+      },
     },
   };
 }
