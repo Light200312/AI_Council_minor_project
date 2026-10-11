@@ -3,7 +3,7 @@ import { cva } from "class-variance-authority";
 
 // Variant definitions for the outer toggle track.
 const toggleVariants = cva(
-  "relative inline-flex items-center rounded-full transition-colors duration-200 ease-in-out focus-visible:ring-2 focus-visible:ring-gray-500 focus-visible:ring-offset-2",
+  "relative inline-flex items-center rounded-full transition-colors duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-700 focus-visible:ring-offset-2 dark:focus-visible:ring-teal-300",
   {
     variants: {
       size: {
@@ -42,7 +42,7 @@ const thumbVariants = cva(
     }
   }
 );
-const labelVariants = cva("text-gray-700", {
+const labelVariants = cva("text-slate-700 dark:text-slate-200", {
   variants: {
     size: {
       small: "text-sm",
@@ -51,7 +51,7 @@ const labelVariants = cva("text-gray-700", {
     },
     disabled: {
       true: "text-gray-400",
-      false: "text-gray-700"
+      false: "text-slate-700 dark:text-slate-200"
     }
   },
   defaultVariants: {
@@ -85,13 +85,6 @@ const Toggle = forwardRef(
         onChange?.(!isChecked);
       }
     };
-    // Allow keyboard activation on Enter/Space.
-    const handleKeyDown = (event) => {
-      if (event.key === "Enter" || event.key === " ") {
-        event.preventDefault();
-        handleClick();
-      }
-    };
     const currentChecked = isControlled ? checked : isChecked;
     const toggleClasses = toggleVariants({
       size,
@@ -105,20 +98,19 @@ const Toggle = forwardRef(
       size,
       disabled
     });
-	    const renderToggle = <button
-	      ref={ref}
-	      role="switch"
+	    const renderToggle = 	    <button
+      ref={ref}
+        type="button"
+      role="switch"
       aria-checked={currentChecked}
       onClick={handleClick}
-	      onKeyDown={handleKeyDown}
-	      disabled={disabled}
-	      className={`${toggleClasses} ${className || ""}`.trim()}
-	      tabIndex={0}
-	      {...props}
+      disabled={disabled}
+      className={`${toggleClasses} ${className || ""}`.trim()}
+      {...props}
 	    >
 
         <span
-      className={`absolute inset-0 ${currentChecked ? "bg-gray-600" : "bg-gray-300"} rounded-full transition-colors`}
+      className={`absolute inset-0 ${currentChecked ? "bg-teal-700 dark:bg-teal-400" : "bg-slate-500 dark:bg-slate-600"} rounded-full transition-colors`}
     />
 
         <span className={thumbClasses}>

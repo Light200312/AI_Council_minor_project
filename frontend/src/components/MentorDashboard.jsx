@@ -24,6 +24,7 @@ function MentorDashboard({ topic, members }) {
   const followupQuestion = useAppStore((state) => state.followupQuestion);
   const suggestion = useAppStore((state) => state.suggestion);
   const token = useAppStore((state) => state.token);
+  const motionPreference = useAppStore((state) => state.motionPreference);
   const sessionId = useAppStore((state) => state.gameState.sessionId);
   const loadMessages = useAppStore((state) => state.loadMessages);
   const sendMentorMessage = useAppStore((state) => state.sendMentorMessage);
@@ -41,8 +42,15 @@ function MentorDashboard({ topic, members }) {
   }, [token, sessionId, topic, loadMessages]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isLoadingReply]);
+    const systemPrefersReducedMotion =
+      motionPreference === "system" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const shouldReduceMotion =
+      motionPreference === "reduce" || systemPrefersReducedMotion;
+    messagesEndRef.current?.scrollIntoView({
+      behavior: shouldReduceMotion ? "instant" : "smooth",
+    });
+  }, [messages, isLoadingReply, motionPreference]);
 
   useEffect(() => {
     const nextToasts = [];

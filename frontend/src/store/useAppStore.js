@@ -92,6 +92,7 @@ const useAppStore = create(
       followupQuestion: "",
       suggestion: "",
       theme: "light",
+      motionPreference: "system",
       gameState: initialGameState(),
 
       bootstrapSession: async () => {
@@ -667,6 +668,12 @@ const useAppStore = create(
       setOrchestratorMode: (orchestratorMode) => set({ orchestratorMode }),
       setMemoryMode: (memoryMode) => set({ memoryMode }),
       setToolCallingEnabled: (toolCallingEnabled) => set({ toolCallingEnabled: Boolean(toolCallingEnabled) }),
+      setMotionPreference: (motionPreference) =>
+        set({
+          motionPreference: ["system", "reduce", "full"].includes(motionPreference)
+            ? motionPreference
+            : "system",
+        }),
 
       resetSession: () =>
         set({
@@ -688,6 +695,7 @@ const useAppStore = create(
         token: state.token,
         user: state.user,
         theme: state.theme,
+        motionPreference: state.motionPreference,
         apiRoutingMode: state.apiRoutingMode,
         ollamaModel: state.ollamaModel,
         orchestratorMode: state.orchestratorMode,

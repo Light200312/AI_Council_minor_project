@@ -187,6 +187,7 @@ function App() {
   const agents = useAppStore((state) => state.agents);
   const gameState = useAppStore((state) => state.gameState);
   const modePalette = getModePalette(gameState.mode);
+  const motionPreference = useAppStore((state) => state.motionPreference);
   const messages = useAppStore((state) => state.messages);
   const theme = useAppStore((state) => state.theme);
   const authenticate = useAppStore((state) => state.authenticate);
@@ -227,6 +228,7 @@ function App() {
   // Local UI state for tabs, drawers, editor, and combat UX.
   const [activeTab, setActiveTab] = useState("arena");
   const [activeArenaPanel, setActiveArenaPanel] = useState("session");
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isPersonaEditorOpen, setIsPersonaEditorOpen] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [activeSpeakerId, setActiveSpeakerId] = useState();
@@ -257,12 +259,13 @@ function App() {
   // Apply dark theme class to document root.
   useLayoutEffect(() => {
     const root = document.documentElement;
+    root.dataset.motionPreference = motionPreference;
     if (theme === "dark") {
       root.classList.add("dark");
     } else {
       root.classList.remove("dark");
     }
-  }, [theme]);
+  }, [theme, motionPreference]);
 
   // Pair user/opponent messages into rounds for the combat log display.
   const roundPairs = useMemo(() => {
@@ -569,6 +572,12 @@ function App() {
 
   // Switch left sidebar tab and optionally load history.
   const handleTabChange = (tabId) => {
+    if (tabId === "settings") {
+      setActiveTab(tabId);
+      setIsSettingsOpen(true);
+      return;
+    }
+
     if (["combat", "mentor", "historical"].includes(tabId)) {
       if (tabId !== gameState.mode) setMode(tabId);
       setActiveTab("arena");
@@ -908,6 +917,8 @@ function App() {
         <ControlBar
           onConcludeDebate={handleViewReport}
           isGeneratingReport={isGeneratingReport}
+          isSettingsOpen={isSettingsOpen}
+          onSettingsOpenChange={setIsSettingsOpen}
         />
         <div className="absolute right-6 top-15 z-30">
           <button

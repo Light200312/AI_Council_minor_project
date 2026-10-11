@@ -20,8 +20,9 @@ function getSessionDisplayCode(sessionId) {
 function ControlBar({
   onConcludeDebate,
   isGeneratingReport = false,
+  isSettingsOpen = false,
+  onSettingsOpenChange = () => {},
 }) {
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [exportError, setExportError] = useState("");
   const sessionId = useAppStore((state) => state.gameState.sessionId);
   const mode = useAppStore((state) => state.gameState.mode);
@@ -38,6 +39,8 @@ function ControlBar({
   const setMemoryMode = useAppStore((state) => state.setMemoryMode);
   const toolCallingEnabled = useAppStore((state) => state.toolCallingEnabled);
   const setToolCallingEnabled = useAppStore((state) => state.setToolCallingEnabled);
+  const motionPreference = useAppStore((state) => state.motionPreference);
+  const setMotionPreference = useAppStore((state) => state.setMotionPreference);
   const apiModes = [
     { id: "persona", label: "Per Personality" },
     { id: "ollama_only", label: "Ollama Only" },
@@ -124,7 +127,7 @@ function ControlBar({
       <div className="flex flex-wrap items-center justify-end gap-2">
         <button
           type="button"
-          onClick={() => setIsSettingsOpen(true)}
+          onClick={() => onSettingsOpenChange(true)}
           className="inline-flex items-center gap-3 rounded-2xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700 px-3 py-2 text-left transition-colors hover:border-slate-300 dark:hover:border-slate-500 hover:bg-slate-100 dark:hover:bg-slate-600"
         >
           <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 shadow-sm">
@@ -175,7 +178,7 @@ function ControlBar({
 
       <Dialog
       isOpen={isSettingsOpen}
-      onClose={setIsSettingsOpen}
+      onClose={onSettingsOpenChange}
       position="right"
       backdrop="blur"
       className="relative border-l border-slate-200 dark:border-slate-700"
@@ -237,6 +240,28 @@ function ControlBar({
                 aria-label="Toggle persona tool calling"
               />
             </div>
+          </section>
+          <section className="space-y-3" aria-labelledby="motion-preference-label">
+            <div>
+              <h3 id="motion-preference-label" className="text-sm font-semibold text-slate-900 dark:text-white">
+                Motion and Animation
+              </h3>
+              <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
+                Respect your device accessibility setting, reduce animation, or allow full motion.
+              </p>
+            </div>
+            <label className="block">
+              <span className="sr-only">Motion preference</span>
+              <select
+                value={motionPreference}
+                onChange={(event) => setMotionPreference(event.target.value)}
+                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-900 shadow-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+              >
+                <option value="system">Use device setting (recommended)</option>
+                <option value="reduce">Reduce motion</option>
+                <option value="full">Allow full motion</option>
+              </select>
+            </label>
           </section>
         </DialogContent>
       </Dialog>

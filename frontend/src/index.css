@@ -19,3 +19,32 @@ body {
   background: rgb(15 23 42);
   color: rgb(241 245 249);
 }
+
+:focus-visible {
+  outline: 3px solid #0f766e;
+  outline-offset: 3px;
+}
+
+.dark :focus-visible {
+  outline-color: #5eead4;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-motion-preference="full"]) *,
+  :root:not([data-motion-preference="full"]) *::before,
+  :root:not([data-motion-preference="full"]) *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+:root[data-motion-preference="reduce"] *,
+:root[data-motion-preference="reduce"] *::before,
+:root[data-motion-preference="reduce"] *::after {
+  scroll-behavior: auto !important;
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
