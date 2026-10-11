@@ -33,7 +33,11 @@ const GROK_MODEL =
   "grok-4.20-reasoning";
 const CLAUDE_MODEL = process.env.CLAUDE_MODEL || "claude-3-5-sonnet-latest";
 const DEEPSEEK_MODEL = process.env.DEEPSEEK_MODEL || "deepseek-chat";
-const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || "google/gemini-2.0-flash-001";
+const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || "google/gemini-2.5-flash";
+const OPENROUTER_MAX_TOKENS = Number.isInteger(Number(process.env.OPENROUTER_MAX_TOKENS)) &&
+  Number(process.env.OPENROUTER_MAX_TOKENS) > 0
+  ? Number(process.env.OPENROUTER_MAX_TOKENS)
+  : 2048;
 const LLM_TIMEOUT_MS = Number(process.env.LLM_TIMEOUT_MS || 90000);
 
 function getXaiApiKey() {
@@ -198,6 +202,7 @@ async function callOpenRouter({ system, prompt, model = OPENROUTER_MODEL, temper
         "https://openrouter.ai/api/v1/chat/completions",
         {
           model,
+          max_tokens: OPENROUTER_MAX_TOKENS,
           temperature,
           messages: [
             { role: "system", content: system },
@@ -218,7 +223,12 @@ async function callOpenRouter({ system, prompt, model = OPENROUTER_MODEL, temper
       lastError = error;
       console.error("OpenRouter key attempt failed:", {
         keySlot: apiKey === process.env.OPENROUTER_API_KEY ? "primary" : "fallback",
-        message: error?.message,
+        status: error?.response?.status,
+        message:
+          error?.response?.data?.error?.message ||
+          error?.response?.data?.message ||
+          error?.message ||
+          String(error),
       });
     }
   }
@@ -228,9 +238,19 @@ async function callOpenRouter({ system, prompt, model = OPENROUTER_MODEL, temper
 
 async function callAgentLLM({ provider, model, system, prompt, temperature = 0.4 }) {
   const providerCandidates = getProviderPriority(provider);
-  const requestedModel = model || process.env.OPENROUTER_MODEL || OPENROUTER_MODEL;
+  const requestedModel =
+    model ||
+    (provider === "ollama"
+      ? resolveOllamaModel()
+      : process.env.OPENROUTER_MODEL || OPENROUTER_MODEL);
 
   for (const providerCandidate of providerCandidates) {
+    const candidateModel =
+      providerCandidate === provider
+        ? requestedModel
+        : providerCandidate === "ollama"
+          ? resolveOllamaModel()
+          : undefined;
     try {
       switch (providerCandidate) {
         case "gemini":
@@ -273,18 +293,20 @@ async function callAgentLLM({ provider, model, system, prompt, temperature = 0.4
           return await callOllama({
             system,
             prompt,
-            model:
-              provider === "ollama"
-                ? requestedModel
-                : process.env.OLLAMA_MODEL || process.env.OLLAMA_MODEL || OLLAMA_ORCHESTRATOR_MODEL,
+            model: candidateModel || OLLAMA_ORCHESTRATOR_MODEL,
             temperature,
           });
       }
     } catch (error) {
       console.error("Agent LLM call failed:", {
         provider: providerCandidate,
-        model: providerCandidate === provider ? requestedModel : undefined,
-        message: error?.message,
+        model: candidateModel,
+        status: error?.response?.status,
+        message:
+          error?.response?.data?.error?.message ||
+          error?.response?.data?.message ||
+          error?.message ||
+          String(error),
       });
     }
   }
@@ -297,6 +319,7 @@ async function callOrchestratorLLM({ system, prompt, temperature = 0.4, ollamaMo
   const providerCandidates = strictProviderCandidates.length
     ? strictProviderCandidates
     : getProviderPriority(ORCHESTRATOR_PROVIDER || "openrouter");
+  const failures = [];
   for (const provider of providerCandidates) {
     try {
       switch (provider) {
@@ -346,14 +369,26 @@ async function callOrchestratorLLM({ system, prompt, temperature = 0.4, ollamaMo
           });
       }
     } catch (error) {
-      console.error('Orchestrator LLM call failed:', { provider, message: error?.message });
+      const message =
+        error?.response?.data?.error?.message ||
+        error?.response?.data?.message ||
+        error?.message ||
+        String(error);
+      failures.push(`${provider}: ${message}`);
+      console.error("Orchestrator LLM call failed:", {
+        provider,
+        status: error?.response?.status,
+        message,
+      });
       if (strictProviderCandidates.length) {
-        throw new Error(`Orchestrator provider "${provider}" failed: ${error?.message}`);
+        throw new Error(`Orchestrator provider "${provider}" failed: ${message}`);
       }
     }
   }
 
-  throw new Error("Orchestrator model unavailable.");
+  throw new Error(
+    `Orchestrator model unavailable.${failures.length ? ` ${failures.join("; ")}` : ""}`
+  );
 }
 
 export {

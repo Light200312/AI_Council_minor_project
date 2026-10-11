@@ -2,28 +2,29 @@ import { Swords, GraduationCap, Clock, Sparkles, ArrowRight, History, BookOpen, 
 import { Card, CardHeader, CardContent, CardFooter } from "./ui/Card";
 import { Button } from "./ui/Button";
 import { MODE_OPTIONS } from "../data/mockData";
+import { getModePalette } from "../data/modePalette";
 
 // ModeSelect is the entry screen for choosing the debate experience type.
 function ModeSelect({ onSelectMode, onOpenHistory }) {
   // Convert configured icon keys into rendered Lucide icons.
-  const getIcon = (iconName) => {
+  const getIcon = (iconName, colorClass) => {
     switch (iconName) {
       case "Swords":
-        return <Swords className="w-8 h-8 text-slate-700 dark:text-slate-300" />;
+        return <Swords className={`w-8 h-8 ${colorClass}`} />;
       case "GraduationCap":
-        return <GraduationCap className="w-8 h-8 text-slate-700 dark:text-slate-300" />;
+        return <GraduationCap className={`w-8 h-8 ${colorClass}`} />;
       case "Clock":
-        return <Clock className="w-8 h-8 text-slate-700 dark:text-slate-300" />;
+        return <Clock className={`w-8 h-8 ${colorClass}`} />;
       case "Sparkles":
-        return <Sparkles className="w-8 h-8 text-slate-700 dark:text-slate-300" />;
+        return <Sparkles className={`w-8 h-8 ${colorClass}`} />;
       case "BookOpen":
-        return <BookOpen className="w-8 h-8 text-slate-700 dark:text-slate-300" />;
+        return <BookOpen className={`w-8 h-8 ${colorClass}`} />;
       case "Briefcase":
-        return <Briefcase className="w-8 h-8 text-slate-700 dark:text-slate-300" />;
+        return <Briefcase className={`w-8 h-8 ${colorClass}`} />;
       case "Stethoscope":
-        return <Stethoscope className="w-8 h-8 text-slate-700 dark:text-slate-300" />;
+        return <Stethoscope className={`w-8 h-8 ${colorClass}`} />;
       default:
-        return <Swords className="w-8 h-8 text-slate-700 dark:text-slate-300" />;
+        return <Swords className={`w-8 h-8 ${colorClass}`} />;
     }
   };
   return <div className="min-h-screen bg-slate-100 dark:bg-slate-900 flex flex-col items-center justify-center p-8">
@@ -38,15 +39,16 @@ function ModeSelect({ onSelectMode, onOpenHistory }) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 max-w-6xl w-full">
-        {MODE_OPTIONS.map(
-    (mode) => <Card
-      key={mode.id}
-      className="hover:-translate-y-2 transition-transform duration-300 border-2 border-dashed border-slate-300 dark:border-slate-600 hover:border-slate-400 dark:hover:border-slate-500"
-    >
-
+        {MODE_OPTIONS.map((mode) => {
+          const palette = getModePalette(mode.id);
+          return (
+            <Card
+              key={mode.id}
+              className={`hover:-translate-y-2 transition-all duration-300 border-2 border-dashed ${palette.card} hover:shadow-lg`}
+            >
             <CardHeader className="pb-4">
-              <div className="w-16 h-16 bg-slate-100 dark:bg-slate-700 rounded-full flex items-center justify-center mb-4 border border-slate-200 dark:border-slate-600">
-                {getIcon(mode.icon)}
+              <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 border ${palette.iconSurface}`}>
+                {getIcon(mode.icon, palette.icon)}
               </div>
               <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
                 {mode.title}
@@ -56,31 +58,30 @@ function ModeSelect({ onSelectMode, onOpenHistory }) {
               <p className="text-slate-600 dark:text-slate-400 min-h-[3rem]">{mode.description}</p>
 
               <div className="space-y-2">
-                {mode.features.map(
-      (feature, idx) => <div
-        key={idx}
-        className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 font-mono"
-      >
-
-                    <div className="w-1.5 h-1.5 bg-slate-400 dark:bg-slate-500 rounded-full" />
+                {mode.features.map((feature, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 font-mono"
+                  >
+                    <div className={`w-1.5 h-1.5 ${palette.dot} rounded-full`} />
                     {feature}
                   </div>
-    )}
+                ))}
               </div>
             </CardContent>
             <CardFooter className="pt-6">
               <Button
-      className="w-full"
-      size="large"
-      rightIcon={<ArrowRight className="w-4 h-4" />}
-      onClick={() => onSelectMode(mode.id)}
-    >
-
+                className={`w-full border-0 ${palette.button}`}
+                size="large"
+                rightIcon={<ArrowRight className="w-4 h-4" />}
+                onClick={() => onSelectMode(mode.id)}
+              >
                 Select Mode
               </Button>
             </CardFooter>
           </Card>
-  )}
+          );
+        })}
       </div>
 
       {onOpenHistory ? (

@@ -14,6 +14,7 @@ import {
   Stethoscope
 } from "lucide-react";
 import { DEBATE_TEMPERATURES } from "../data/mockData";
+import { getModePalette } from "../data/modePalette";
 import {useAppStore } from '../store/useAppStore'
 // Sidebar surfaces mode navigation, active session context, and user actions.
 const NAV_ITEMS = [
@@ -87,6 +88,7 @@ function Sidebar({
   onThemeToggle
 }) {
   const { user } = useAppStore();
+  const modePalette = getModePalette(currentMode);
   const tempInfo = currentTemperature ? DEBATE_TEMPERATURES.find((t) => t.id === currentTemperature) : null;
   return <div className="w-64 h-full bg-slate-50 dark:bg-slate-950 border-r border-slate-200 dark:border-slate-700 flex flex-col fixed left-0 top-0 z-10">
       {
@@ -124,10 +126,13 @@ function Sidebar({
       {
     /* Current Session Info */
   }
-      {currentMode && <div className="p-4 border-b border-slate-200 dark:border-slate-700 dark:bg-slate-900 space-y-3">
+      {currentMode && <div className={`p-4 border-b border-l-4 ${modePalette.border} ${modePalette.soft} dark:bg-slate-900 space-y-3`}>
           <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 uppercase tracking-widest">
             Active Session
           </span>
+          <div className={`inline-flex rounded-full border ${modePalette.border} ${modePalette.soft} px-2.5 py-1 text-xs font-semibold capitalize ${modePalette.accent}`}>
+            {currentMode.replace(/-/g, " ")}
+          </div>
 
           {
     /* Temperature Badge */
@@ -196,7 +201,7 @@ function Sidebar({
     return <button
       key={item.id}
       onClick={() => onTabChange(item.id)}
-      className={`w-full flex items-center gap-3 px-4 py-3 rounded-md text-sm font-medium transition-colors ${isActive ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900" : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"}`}
+      className={`w-full flex items-center gap-3 px-4 py-3 rounded-md text-sm font-medium transition-colors ${isActive ? getModePalette(item.id).nav : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"}`}
     >
 
                   <Icon className="w-5 h-5" />
@@ -228,10 +233,11 @@ function Sidebar({
             {FEATURE_ITEMS.map((item) => {
     const Icon = item.icon;
     const isActive = activeTab === item.id;
+    const featurePalette = getModePalette(item.id);
     return <button
       key={item.id}
       onClick={() => onFeatureSelect && onFeatureSelect(item.id)}
-      className={`w-full flex items-center gap-3 px-4 py-3 rounded-md text-sm font-medium transition-colors group ${isActive ? "bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white" : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"}`}
+      className={`w-full flex items-center gap-3 px-4 py-3 rounded-md text-sm font-medium transition-colors group ${isActive ? `${featurePalette.soft} ${featurePalette.accent}` : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"}`}
       title={item.description}
     >
 

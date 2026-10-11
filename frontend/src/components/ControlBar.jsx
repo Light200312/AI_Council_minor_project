@@ -4,6 +4,7 @@ import { Button } from "./ui/Button";
 import { Dialog, DialogContent, DialogHeader } from "./ui/Dialog";
 import { Toggle } from "./ui/Toggle";
 import { useAppStore } from "../store/useAppStore";
+import { getModePalette } from "../data/modePalette";
 
 function getSessionDisplayCode(sessionId) {
   const normalized = String(sessionId || "").trim();
@@ -24,6 +25,7 @@ function ControlBar({
   const [exportError, setExportError] = useState("");
   const sessionId = useAppStore((state) => state.gameState.sessionId);
   const mode = useAppStore((state) => state.gameState.mode);
+  const modePalette = getModePalette(mode);
   const roundResults = useAppStore((state) => state.gameState.roundResults);
   const combatLog = useAppStore((state) => state.gameState.combatLog);
   const apiRoutingMode = useAppStore((state) => state.apiRoutingMode);
@@ -108,10 +110,10 @@ function ControlBar({
   );
 
   return <>
-      <div className="min-h-16 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex flex-wrap items-center justify-between gap-3 px-4 py-3 sticky top-0 z-20 lg:px-6">
+      <div className={`min-h-16 bg-white dark:bg-slate-800 border-t-4 ${modePalette.topBorder} border-b border-slate-200 dark:border-slate-700 flex flex-wrap items-center justify-between gap-3 px-4 py-3 sticky top-0 z-20 lg:px-6`}>
       <div className="flex items-center gap-4">
         <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-          Debate Session #{sessionDisplayCode}
+          {mode.replace(/-/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase())} Session #{sessionDisplayCode}
         </h2>
         <span className="px-2 py-0.5 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-200 text-xs font-mono rounded-full border border-green-200 dark:border-green-800 flex items-center gap-1">
           <span className="w-1.5 h-1.5 bg-green-500 dark:bg-green-400 rounded-full animate-pulse" />

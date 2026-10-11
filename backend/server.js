@@ -1,6 +1,6 @@
 // Backend entry point: sets up the API, connects MongoDB, and starts the server.
+import "dotenv/config";
 import express from "express";
-import dotenv from "dotenv";
 import cors from "cors";
 import connectDB from "./shared/db.js";
 import { seedDatabase } from "./data/seed.js";
@@ -10,8 +10,6 @@ import messageRoutes from "./features/message/message.routes.js";
 import orchestratorRoutes from "./features/orchestrator/orchestrator.routes.js";
 import combatRoutes from "./features/combat/combat.routes.js";
 import featuresRoutes from "./features/panels/panels.routes.js";
-
-dotenv.config();
 
 // Express app configuration + environment defaults.
 const app = express();

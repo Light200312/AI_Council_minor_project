@@ -44,7 +44,12 @@ async function chooseOpponentTeam({ topic, candidateIds = [], count = 3, difficu
   const roster = candidates.map((c) => ({ id: c.id, name: c.name, role: c.role, era: c.era, description: c.description, stats: c.stats }));
   const system = "You select an opponent team for a debate game. Return strict JSON only.";
   const prompt = `Topic: ${topic}\nDifficulty: ${difficulty}\n\nPick ${safeCount} agent ids from this roster that best fit the topic and difficulty.\n\nRoster:\n${roster.map((r) => `${r.id} | ${r.name} | ${r.role} | ${r.era}`).join("\n")}\n\nReturn JSON: {"ids":["id1","id2"],"reason":"short reason"}`;
-  const raw = await callOrchestratorLLM({ system, prompt, temperature: 0.2, ollamaModel });
+  let raw = "";
+  try {
+    raw = await callOrchestratorLLM({ system, prompt, temperature: 0.2, ollamaModel });
+  } catch (error) {
+    console.error("Combat team selection falling back to heuristics:", error.message);
+  }
   const jsonText = extractFirstJsonObject(raw);
   try {
     const parsed = JSON.parse(jsonText || "{}");
@@ -62,7 +67,12 @@ async function chooseOpponentTurn({ topic, opponentTeamIds = [], userArgument = 
   if (!candidates.length) throw new Error("No opponent team available.");
   const system = "You are selecting the opponent speaker and response strategy. Return strict JSON only.";
   const prompt = `Topic: ${topic}\nDifficulty: ${difficulty}\nUser argument: ${userArgument || "none"}\n\nOpponent team:\n${candidates.map((c) => `${c.id} | ${c.name} | ${c.role}`).join("\n")}\n\nAvailable strategies:\n${strategies.map((s) => `${s.type} | ${s.title} | ${s.description}`).join("\n")}\n\nReturn JSON: {"agentId":"<id>","strategyType":"<type>","reason":"short reason"}`;
-  const raw = await callOrchestratorLLM({ system, prompt, temperature: 0.3, ollamaModel });
+  let raw = "";
+  try {
+    raw = await callOrchestratorLLM({ system, prompt, temperature: 0.3, ollamaModel });
+  } catch (error) {
+    console.error("Combat turn selection falling back to heuristics:", error.message);
+  }
   const jsonText = extractFirstJsonObject(raw);
   try {
     const parsed = JSON.parse(jsonText || "{}");
@@ -78,14 +88,24 @@ async function chooseOpponentTurn({ topic, opponentTeamIds = [], userArgument = 
 async function judgeRound({ topic, playerArgument, opponentArgument, ollamaModel = "" }) {
   const system = "You are a neutral judge for a debate. Return strict JSON only.";
   const prompt = `Topic: ${topic}\nPlayer argument: ${playerArgument}\nOpponent argument: ${opponentArgument}\n\nReturn JSON:\n{"winner":"player|opponent|tie","playerScore":0-100,"opponentScore":0-100,"confidence":0-1,"probabilities":{"player":0-1,"opponent":0-1},"reasoning":"short reasoning"}`;
-  const raw = await callOrchestratorLLM({ system, prompt, temperature: 0.2, ollamaModel });
+  let raw = "";
+  try {
+    raw = await callOrchestratorLLM({ system, prompt, temperature: 0.2, ollamaModel });
+  } catch (error) {
+    console.error("Combat judging falling back to heuristics:", error.message);
+  }
   const jsonText = extractFirstJsonObject(raw);
   try {
     const parsed = JSON.parse(jsonText || "{}");
-    const playerScore = clampNumber(parsed.playerScore, { min: 0, max: 100, fallback: 50 });
-    const opponentScore = clampNumber(parsed.opponentScore, { min: 0, max: 100, fallback: 50 });
-    const winner = ["player", "opponent", "tie"].includes(parsed.winner) ? parsed.winner : "tie";
-    return { winner, playerScore, opponentScore, confidence: clampNumber(parsed.confidence, { min: 0, max: 1, fallback: 0.5 }), probabilities: { player: clampNumber(parsed?.probabilities?.player, { min: 0, max: 1, fallback: 0.5 }), opponent: clampNumber(parsed?.probabilities?.opponent, { min: 0, max: 1, fallback: 0.5 }) }, reasoning: String(parsed.reasoning || "Judged by AI.") };
+    if (
+      ["player", "opponent", "tie"].includes(parsed.winner) &&
+      Number.isFinite(Number(parsed.playerScore)) &&
+      Number.isFinite(Number(parsed.opponentScore))
+    ) {
+      const playerScore = clampNumber(parsed.playerScore, { min: 0, max: 100, fallback: 50 });
+      const opponentScore = clampNumber(parsed.opponentScore, { min: 0, max: 100, fallback: 50 });
+      return { winner: parsed.winner, playerScore, opponentScore, confidence: clampNumber(parsed.confidence, { min: 0, max: 1, fallback: 0.5 }), probabilities: { player: clampNumber(parsed?.probabilities?.player, { min: 0, max: 1, fallback: 0.5 }), opponent: clampNumber(parsed?.probabilities?.opponent, { min: 0, max: 1, fallback: 0.5 }) }, reasoning: String(parsed.reasoning || "Judged by AI.") };
+    }
   } catch (_) {}
   const playerScore = clampNumber(playerArgument?.length || 0, { min: 0, max: 100, fallback: 50 });
   const opponentScore = clampNumber(opponentArgument?.length || 0, { min: 0, max: 100, fallback: 50 });
