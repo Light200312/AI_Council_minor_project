@@ -20,6 +20,15 @@ body {
   color: rgb(241 245 249);
 }
 
+* {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+*::-webkit-scrollbar {
+  display: none;
+}
+
 :focus-visible {
   outline: 3px solid #0f766e;
   outline-offset: 3px;

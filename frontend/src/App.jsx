@@ -596,61 +596,35 @@ function App() {
   const handleFeatureSelect = (featureId) => {
     setActiveTab(featureId);
     setActiveArenaPanel("session");
-    // Set the mode to match the feature
-    if (featureId === "learn-law") {
-      setMode("learn-law");
-    } else if (featureId === "interview-simulator") {
-      setMode("interview-simulator");
-    } else if (featureId === "medical-consulting") {
-      setMode("medical-consulting");
-    }
   };
 
-  // Handle agent selection from feature pages and start debate
-  const handleSelectExperts = (selectedExperts, topic, mode) => {
-    // Set player team (selectedExperts are agent objects from the page)
-    const expertIds = selectedExperts.map((e) => (typeof e === "object" ? e.id : e));
-    expertIds.forEach((expertId) => {
-      if (!gameState.playerTeam.find((m) => m.id === expertId)) {
-        toggleMember(expertId);
-      }
-    });
-    // Set topic and mode, transition to discussion view (like mentor mode)
+  const startFeatureSession = (selectedMembers, topic, mode) => {
+    const selectedTeam = selectedMembers
+      .map((member) =>
+        typeof member === "object"
+          ? agents.find((agent) => String(agent.id) === String(member.id)) || member
+          : agents.find((agent) => String(agent.id) === String(member))
+      )
+      .filter(Boolean);
+
+    setMode(mode);
     setTopic(topic);
-    setMode(mode || "learn-law");
-    // Clear active tab to show the main arena view
+    updateGameState({
+      setupPhase: "ready",
+      playerTeam: selectedTeam,
+      maxMembers: Math.max(3, selectedTeam.length),
+    });
     setActiveTab("arena");
   };
 
-  const handleSelectInterviewers = (selectedInterviewers, topic, mode) => {
-    // Set player team (selectedInterviewers are agent objects from the page)
-    const interviewerIds = selectedInterviewers.map((i) => (typeof i === "object" ? i.id : i));
-    interviewerIds.forEach((interviewerId) => {
-      if (!gameState.playerTeam.find((m) => m.id === interviewerId)) {
-        toggleMember(interviewerId);
-      }
-    });
-    // Set topic and mode, transition to discussion view
-    setTopic(topic);
-    setMode(mode || "interview-simulator");
-    // Clear active tab to show the main arena view
-    setActiveTab("arena");
-  };
+  const handleSelectExperts = (selectedExperts, topic, mode) =>
+    startFeatureSession(selectedExperts, topic, mode || "learn-law");
 
-  const handleSelectDoctors = (selectedDoctors, topic, mode) => {
-    // Set player team (selectedDoctors are agent objects from the page)
-    const doctorIds = selectedDoctors.map((d) => (typeof d === "object" ? d.id : d));
-    doctorIds.forEach((doctorId) => {
-      if (!gameState.playerTeam.find((m) => m.id === doctorId)) {
-        toggleMember(doctorId);
-      }
-    });
-    // Set topic and mode, transition to discussion view
-    setTopic(topic);
-    setMode(mode || "medical-consulting");
-    // Clear active tab to show the main arena view
-    setActiveTab("arena");
-  };
+  const handleSelectInterviewers = (selectedInterviewers, topic, mode) =>
+    startFeatureSession(selectedInterviewers, topic, mode || "interview-simulator");
+
+  const handleSelectDoctors = (selectedDoctors, topic, mode) =>
+    startFeatureSession(selectedDoctors, topic, mode || "medical-consulting");
 
   const handleViewReport = async ({ forceRefresh = false } = {}) => {
     setActiveArenaPanel("report");
@@ -938,17 +912,17 @@ function App() {
                 setActiveTab("arena");
               }}
             />
-          ) : activeTab === "learn-law" && gameState.mode !== "learn-law" ? (
+          ) : activeTab === "learn-law" ? (
             <LearnLawPage
               onSelectExperts={handleSelectExperts}
               onClose={() => setActiveTab("arena")}
             />
-          ) : activeTab === "interview-simulator" && gameState.mode !== "interview-simulator" ? (
+          ) : activeTab === "interview-simulator" ? (
             <InterviewSimulatorPage
               onSelectInterviewers={handleSelectInterviewers}
               onClose={() => setActiveTab("arena")}
             />
-          ) : activeTab === "medical-consulting" && gameState.mode !== "medical-consulting" ? (
+          ) : activeTab === "medical-consulting" ? (
             <MedicalConsultingPage
               onSelectDoctors={handleSelectDoctors}
               onClose={() => setActiveTab("arena")}
